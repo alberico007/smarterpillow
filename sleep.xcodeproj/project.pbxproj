@@ -1,0 +1,627 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		06E3957E54A45E3507B6CA2F /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 8BFC7BB473584B490F2A5684 /* FirebaseFirestore */; };
+		D1911F3D13DFDDEA09DB5F88 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 1F95F2D99F5E0C0C8819AC62 /* FirebaseAuth */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4C00DA262F68C1810016FAE5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4C00DA102F68C1800016FAE5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4C00DA172F68C1800016FAE5;
+			remoteInfo = sleep;
+		};
+		4C00DA302F68C1810016FAE5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4C00DA102F68C1800016FAE5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4C00DA172F68C1800016FAE5;
+			remoteInfo = sleep;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		4C00DA182F68C1800016FAE5 /* sleep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = sleep.app; path = Slumberscope.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4C00DA252F68C1810016FAE5 /* sleepTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = sleepTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4C00DA2F2F68C1810016FAE5 /* sleepUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = sleepUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		4C00DA1A2F68C1800016FAE5 /* sleep */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = sleep;
+			sourceTree = "<group>";
+		};
+		4C00DA282F68C1810016FAE5 /* sleepTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = sleepTests;
+			sourceTree = "<group>";
+		};
+		4C00DA322F68C1810016FAE5 /* sleepUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = sleepUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4C00DA152F68C1800016FAE5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D1911F3D13DFDDEA09DB5F88 /* FirebaseAuth in Frameworks */,
+				06E3957E54A45E3507B6CA2F /* FirebaseFirestore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C00DA222F68C1810016FAE5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C00DA2C2F68C1810016FAE5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4C00DA0F2F68C1800016FAE5 = {
+			isa = PBXGroup;
+			children = (
+				4C00DA1A2F68C1800016FAE5 /* sleep */,
+				4C00DA282F68C1810016FAE5 /* sleepTests */,
+				4C00DA322F68C1810016FAE5 /* sleepUITests */,
+				4C00DA192F68C1800016FAE5 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4C00DA192F68C1800016FAE5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4C00DA182F68C1800016FAE5 /* sleep.app */,
+				4C00DA252F68C1810016FAE5 /* sleepTests.xctest */,
+				4C00DA2F2F68C1810016FAE5 /* sleepUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4C00DA172F68C1800016FAE5 /* sleep */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4C00DA392F68C1810016FAE5 /* Build configuration list for PBXNativeTarget "sleep" */;
+			buildPhases = (
+				4C00DA142F68C1800016FAE5 /* Sources */,
+				4C00DA152F68C1800016FAE5 /* Frameworks */,
+				4C00DA162F68C1800016FAE5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4C00DA1A2F68C1800016FAE5 /* sleep */,
+			);
+			name = sleep;
+			packageProductDependencies = (
+				1F95F2D99F5E0C0C8819AC62 /* FirebaseAuth */,
+				8BFC7BB473584B490F2A5684 /* FirebaseFirestore */,
+			);
+			productName = sleep;
+			productReference = 4C00DA182F68C1800016FAE5 /* sleep.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4C00DA242F68C1810016FAE5 /* sleepTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4C00DA3C2F68C1810016FAE5 /* Build configuration list for PBXNativeTarget "sleepTests" */;
+			buildPhases = (
+				4C00DA212F68C1810016FAE5 /* Sources */,
+				4C00DA222F68C1810016FAE5 /* Frameworks */,
+				4C00DA232F68C1810016FAE5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4C00DA272F68C1810016FAE5 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4C00DA282F68C1810016FAE5 /* sleepTests */,
+			);
+			name = sleepTests;
+			productName = sleepTests;
+			productReference = 4C00DA252F68C1810016FAE5 /* sleepTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		4C00DA2E2F68C1810016FAE5 /* sleepUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4C00DA3F2F68C1810016FAE5 /* Build configuration list for PBXNativeTarget "sleepUITests" */;
+			buildPhases = (
+				4C00DA2B2F68C1810016FAE5 /* Sources */,
+				4C00DA2C2F68C1810016FAE5 /* Frameworks */,
+				4C00DA2D2F68C1810016FAE5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4C00DA312F68C1810016FAE5 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4C00DA322F68C1810016FAE5 /* sleepUITests */,
+			);
+			name = sleepUITests;
+			productName = sleepUITests;
+			productReference = 4C00DA2F2F68C1810016FAE5 /* sleepUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4C00DA102F68C1800016FAE5 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					4C00DA172F68C1800016FAE5 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					4C00DA242F68C1810016FAE5 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 4C00DA172F68C1800016FAE5;
+					};
+					4C00DA2E2F68C1810016FAE5 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 4C00DA172F68C1800016FAE5;
+					};
+				};
+			};
+			buildConfigurationList = 4C00DA132F68C1800016FAE5 /* Build configuration list for PBXProject "sleep" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4C00DA0F2F68C1800016FAE5;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				38F8EAC112890F0469C4D994 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4C00DA192F68C1800016FAE5 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4C00DA172F68C1800016FAE5 /* sleep */,
+				4C00DA242F68C1810016FAE5 /* sleepTests */,
+				4C00DA2E2F68C1810016FAE5 /* sleepUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4C00DA162F68C1800016FAE5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C00DA232F68C1810016FAE5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C00DA2D2F68C1810016FAE5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4C00DA142F68C1800016FAE5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C00DA212F68C1810016FAE5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C00DA2B2F68C1810016FAE5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4C00DA272F68C1810016FAE5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4C00DA172F68C1800016FAE5 /* sleep */;
+			targetProxy = 4C00DA262F68C1810016FAE5 /* PBXContainerItemProxy */;
+		};
+		4C00DA312F68C1810016FAE5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4C00DA172F68C1800016FAE5 /* sleep */;
+			targetProxy = 4C00DA302F68C1810016FAE5 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		4C00DA372F68C1810016FAE5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		4C00DA382F68C1810016FAE5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		4C00DA3A2F68C1810016FAE5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = sleep/sleep.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = D34W82FD5N;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Slumberscope;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Slumberscope uses HealthKit to read your sleep data and provide better insights.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Slumberscope saves your sleep sessions to Apple Health so you can track your rest alongside other health data.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Slumberscope uses your location to show the weather when you wake up.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Slumberscope uses the microphone to detect snoring patterns while you sleep.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Slumberscope uses motion sensors to track your movement and detect sleep stages.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleep";
+				PRODUCT_NAME = Slumberscope;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4C00DA3B2F68C1810016FAE5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = sleep/sleep.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = D34W82FD5N;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Slumberscope;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Slumberscope uses HealthKit to read your sleep data and provide better insights.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Slumberscope saves your sleep sessions to Apple Health so you can track your rest alongside other health data.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Slumberscope uses your location to show the weather when you wake up.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Slumberscope uses the microphone to detect snoring patterns while you sleep.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Slumberscope uses motion sensors to track your movement and detect sleep stages.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleep";
+				PRODUCT_NAME = Slumberscope;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		4C00DA3D2F68C1810016FAE5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = D34W82FD5N;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleepTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Slumberscope.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Slumberscope";
+			};
+			name = Debug;
+		};
+		4C00DA3E2F68C1810016FAE5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = D34W82FD5N;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleepTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Slumberscope.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Slumberscope";
+			};
+			name = Release;
+		};
+		4C00DA402F68C1810016FAE5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = D34W82FD5N;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleepUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = sleep;
+			};
+			name = Debug;
+		};
+		4C00DA412F68C1810016FAE5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = D34W82FD5N;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleepUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = sleep;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4C00DA132F68C1800016FAE5 /* Build configuration list for PBXProject "sleep" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C00DA372F68C1810016FAE5 /* Debug */,
+				4C00DA382F68C1810016FAE5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4C00DA392F68C1810016FAE5 /* Build configuration list for PBXNativeTarget "sleep" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C00DA3A2F68C1810016FAE5 /* Debug */,
+				4C00DA3B2F68C1810016FAE5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4C00DA3C2F68C1810016FAE5 /* Build configuration list for PBXNativeTarget "sleepTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C00DA3D2F68C1810016FAE5 /* Debug */,
+				4C00DA3E2F68C1810016FAE5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4C00DA3F2F68C1810016FAE5 /* Build configuration list for PBXNativeTarget "sleepUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C00DA402F68C1810016FAE5 /* Debug */,
+				4C00DA412F68C1810016FAE5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		38F8EAC112890F0469C4D994 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1F95F2D99F5E0C0C8819AC62 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 38F8EAC112890F0469C4D994 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		8BFC7BB473584B490F2A5684 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 38F8EAC112890F0469C4D994 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 4C00DA102F68C1800016FAE5 /* Project object */;
+}
