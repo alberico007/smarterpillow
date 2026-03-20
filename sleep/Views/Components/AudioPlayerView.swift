@@ -2,14 +2,16 @@
 //  AudioPlayerView.swift
 //  sleep
 //
-//  Created by Michael Berinshteyn on 3/17/26.
-//
+//  Displays a compact audio player control for sleep-related audio events (snoring, coughing, sleep talking, etc)
+// It shows a play/pause button event type icon, timestamps, and an animated waveform visualization of the audio
 
 import AVFoundation
 import SwiftUI
 
 // MARK: - AudioEventType
 
+
+//Defines possible types of sleep events that can have audio
 enum AudioEventType: String, CaseIterable, Identifiable {
     case snoring = "Snoring"
     case coughing = "Coughing"

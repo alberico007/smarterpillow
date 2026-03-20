@@ -2,12 +2,12 @@
 //  OnboardingView.swift
 //  sleep
 //
-//  Created by Michael Berinshteyn on 3/17/26.
+//
 //
 
-import AuthenticationServices
-import os
-import SwiftUI
+import AuthenticationServices //for sign-in with Apple
+import os //for logging (used as AppLogger)
+import SwiftUI //for UI components
 
 // MARK: - OnboardingView
 
@@ -99,8 +99,8 @@ private struct SplashPage: View {
 
     private let team = [
         (name: "Simon Alberico", role: "Cyber Security", initials: "SA", colors: [Color.cyan, Color.blue]),
-        (name: "Aia Ahmed", role: "Computer Science", initials: "AA", colors: [Color.purple, Color.pink]),
-        (name: "Ananjin Batdelger", role: "Software Engineering", initials: "AB", colors: [Color.green, Color.teal])
+        (name: "Aia Ahmed", role: "Software Engineering", initials: "AA", colors: [Color.purple, Color.pink]),
+        (name: "Ananjin Batdelger", role: "Computer Science", initials: "AB", colors: [Color.green, Color.teal])
     ]
 
     var body: some View {
