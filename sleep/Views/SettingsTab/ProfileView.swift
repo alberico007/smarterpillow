@@ -148,13 +148,13 @@ struct ProfileView: View {
     }
 
     private func deleteEverything() {
-        AppLogger.auth.info("🔐 User requested account & data deletion")
+        AppLogger.auth.info("User requested account & data deletion")
 
         for session in sessions {
             modelContext.delete(session)
         }
         try? modelContext.save()
-        AppLogger.auth.info("🔐 Deleted \(sessions.count) sleep sessions")
+        AppLogger.auth.info("Deleted \(sessions.count) sleep sessions")
 
         authService.deleteFirebaseAccount()
         authService.signOut()
@@ -165,7 +165,7 @@ struct ProfileView: View {
         settings.userGender = "Not specified"
         settings.sleepGoalHours = 8.0
         settings.hasCompletedOnboarding = false
-        AppLogger.auth.info("🔐 All data deleted and settings reset")
+        AppLogger.auth.info("All data deleted and settings reset")
     }
 
     private func recommendedSleep(age: Int) -> String {

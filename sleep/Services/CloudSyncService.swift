@@ -117,7 +117,7 @@ final class CloudSyncService {
                 .getDocuments()
 
             let sessions = snapshot.documents.compactMap { sleepSession(from: $0.data()) }
-            AppLogger.appEvent("✅ Restored \(sessions.count) sessions from Firestore")
+            AppLogger.appEvent("Restored \(sessions.count) sessions from Firestore")
             return sessions
 
         } catch {
@@ -169,7 +169,7 @@ final class CloudSyncService {
     // MARK: - Audio (not supported in Firestore — skipped)
 
     func backupAudioRecordings() async {
-        AppLogger.appEvent("ℹ️ Audio backup not implemented for Firestore")
+        AppLogger.appEvent("Audio backup not implemented for Firestore")
     }
 
     // MARK: - Helper
