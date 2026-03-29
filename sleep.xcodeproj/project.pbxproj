@@ -29,7 +29,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		4C00DA182F68C1800016FAE5 /* sleep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = sleep.app; path = Slumberscope.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4C00DA182F68C1800016FAE5 /* Slumberscope.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Slumberscope.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C00DA252F68C1810016FAE5 /* sleepTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = sleepTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C00DA2F2F68C1810016FAE5 /* sleepUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = sleepUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -92,7 +92,7 @@
 		4C00DA192F68C1800016FAE5 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				4C00DA182F68C1800016FAE5 /* sleep.app */,
+				4C00DA182F68C1800016FAE5 /* Slumberscope.app */,
 				4C00DA252F68C1810016FAE5 /* sleepTests.xctest */,
 				4C00DA2F2F68C1810016FAE5 /* sleepUITests.xctest */,
 			);
@@ -123,7 +123,7 @@
 				8BFC7BB473584B490F2A5684 /* FirebaseFirestore */,
 			);
 			productName = sleep;
-			productReference = 4C00DA182F68C1800016FAE5 /* sleep.app */;
+			productReference = 4C00DA182F68C1800016FAE5 /* Slumberscope.app */;
 			productType = "com.apple.product-type.application";
 		};
 		4C00DA242F68C1810016FAE5 /* sleepTests */ = {
@@ -416,8 +416,8 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -455,8 +455,8 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

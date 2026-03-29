@@ -2,115 +2,38 @@
 //  CloudSyncService.swift
 //  sleep
 //
-//  Created by Michael Berinshteyn on 3/17/26.
-//
 
+import FirebaseAuth
+import FirebaseFirestore
 import Foundation
-import CloudKit
-import os
 
 @Observable
 final class CloudSyncService {
 
-    // MARK: - UserDefaults Keys
-
-    private enum Keys {
-        static let lastSyncDate = "cloudSync_lastSyncDate"
-    }
-
-    // MARK: - Constants
-
-    private static let containerID = "iCloud.smarter-pillow.sleep"
-    private static let sessionRecordType = "SleepSession"
-    private static let audioRecordType = "AudioRecording"
-    private static let zoneName = "SleepDataZone"
-
     // MARK: - Observable State
 
     var isSyncing = false
-    var lastSyncDate: Date? {
-        didSet { UserDefaults.standard.set(lastSyncDate, forKey: Keys.lastSyncDate) }
-    }
+    var lastSyncDate: Date?
     var isCloudAvailable = false
     var syncError: String?
 
     // MARK: - Private
 
-    private var _container: CKContainer?
-    private var container: CKContainer? {
-        if _container == nil, Self.hasCloudKitEntitlement {
-            _container = CKContainer.default()
-        }
-        return _container
-    }
-    private var privateDatabase: CKDatabase? { container?.privateCloudDatabase }
-    private let recordZoneID = CKRecordZone.ID(zoneName: "SleepDataZone", ownerName: CKCurrentUserDefaultName)
-
-    /// Check if the app has the iCloud entitlement before touching CKContainer.
-    /// CKContainer.default() triggers SIGTRAP if the entitlement is missing — cannot be caught.
-    /// iCloud entitlement (com.apple.developer.icloud-container-identifiers) is not
-    /// currently in sleep.entitlements. Re-enable when iCloud capability is added.
-    private static var hasCloudKitEntitlement: Bool {
-        return false
-    }
+    private var db: Firestore { Firestore.firestore() }
+    private var currentUserID: String? { Auth.auth().currentUser?.uid }
 
     // MARK: - Init
 
     init() {
-        self.lastSyncDate = UserDefaults.standard.object(forKey: Keys.lastSyncDate) as? Date
-        // Only attempt setup if iCloud is available
-        if Self.hasCloudKitEntitlement {
-            Task { await setup() }
-        } else {
-            AppLogger.cloudSync.info("☁️ iCloud entitlement not present — cloud sync disabled")
-        }
-    }
-
-    // MARK: - Setup
-
-    private func setup() async {
-        await checkCloudStatus()
-
-        guard isCloudAvailable, let db = privateDatabase else { return }
-
-        // Ensure custom zone exists
-        do {
-            let zone = CKRecordZone(zoneID: recordZoneID)
-            _ = try await db.save(zone)
-        } catch {
-            // Zone may already exist, which is fine
-            let ckError = error as? CKError
-            if ckError?.code != .serverRecordChanged {
-                AppLogger.cloudSync.error("Failed to create record zone: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    // MARK: - Check Cloud Status
-
-    func checkCloudStatus() async {
-        guard let container = container else {
-            await MainActor.run { isCloudAvailable = false }
-            AppLogger.cloudSync.info("☁️ iCloud container not available (no entitlement)")
-            return
-        }
-        do {
-            let status = try await container.accountStatus()
-            await MainActor.run {
-                isCloudAvailable = (status == .available)
-            }
-        } catch {
-            AppLogger.cloudSync.error("Failed to check iCloud account status: \(error.localizedDescription)")
-            await MainActor.run { isCloudAvailable = false }
-        }
+        // Firebase must be configured before Auth or Firestore are accessed.
+        // checkCloudStatus() is called from sleepApp after FirebaseApp.configure().
     }
 
     // MARK: - Sync Sessions
 
     func syncSessions(_ sessions: [SleepSession]) async {
-        AppLogger.cloudSync.info("☁️ Syncing \(sessions.count) sessions")
-        guard isCloudAvailable, let privateDatabase = privateDatabase else {
-            syncError = "iCloud is not available"
+        guard let uid = currentUserID else {
+            syncError = "Not signed in"
             return
         }
 
@@ -120,128 +43,53 @@ final class CloudSyncService {
         }
         defer { Task { @MainActor in isSyncing = false } }
 
+        let sessionsRef = db
+            .collection("users")
+            .document(uid)
+            .collection("sleep_sessions")
+
         do {
-            // Fetch existing record IDs to avoid duplicates
-            let existingIDs = try await fetchExistingSessionIDs()
-
-            // Convert sessions to CKRecords, skipping already-synced ones
-            var recordsToSave: [CKRecord] = []
-
             for session in sessions {
-                let recordID = CKRecord.ID(
-                    recordName: sessionRecordName(for: session),
-                    zoneID: recordZoneID
-                )
+                let docID = "session_\(Int(session.startTime.timeIntervalSince1970))"
+                let docRef = sessionsRef.document(docID)
 
-                if existingIDs.contains(recordID.recordName) { continue }
+                var data: [String: Any] = [
+                    "startTime": Timestamp(date: session.startTime),
+                    "endTime": Timestamp(date: session.endTime),
+                    "qualityRating": session.qualityRating,
+                    "notes": session.notes,
+                    "durationSeconds": session.durationSeconds,
+                    "averageMovement": session.averageMovement,
+                    "snoringCount": session.snoringCount,
+                    "morningMood": session.morningMood,
+                    "sleepScore": session.sleepScore,
+                    "syncedAt": Timestamp(date: Date()),
+                    "platform": "ios"
+                ]
 
-                let record = CKRecord(recordType: Self.sessionRecordType, recordID: recordID)
-                record["startTime"] = session.startTime as CKRecordValue
-                record["endTime"] = session.endTime as CKRecordValue
-                record["qualityRating"] = session.qualityRating as CKRecordValue
-                record["notes"] = session.notes as CKRecordValue
-                record["durationSeconds"] = session.durationSeconds as CKRecordValue
-                record["averageMovement"] = session.averageMovement as CKRecordValue
-                record["snoringCount"] = session.snoringCount as CKRecordValue
-                record["morningMood"] = session.morningMood as CKRecordValue
-                record["sleepScore"] = session.sleepScore as CKRecordValue
-
-                // Store encoded stage data if available
                 if let stageData = session.stageData {
-                    record["stageData"] = stageData as CKRecordValue
+                    data["stageData"] = stageData.base64EncodedString()
                 }
                 if let movementData = session.movementData {
-                    record["movementData"] = movementData as CKRecordValue
+                    data["movementData"] = movementData.base64EncodedString()
                 }
                 if let snoringData = session.snoringData {
-                    record["snoringData"] = snoringData as CKRecordValue
+                    data["snoringData"] = snoringData.base64EncodedString()
                 }
 
-                recordsToSave.append(record)
+                try await docRef.setData(data, merge: true)
             }
 
-            // Batch save using modify operation
-            if !recordsToSave.isEmpty {
-                let batchSize = 400 // CKModifyRecordsOperation limit
-                for batchStart in stride(from: 0, to: recordsToSave.count, by: batchSize) {
-                    let batchEnd = min(batchStart + batchSize, recordsToSave.count)
-                    let batch = Array(recordsToSave[batchStart..<batchEnd])
-
-                    let (saveResults, _) = try await privateDatabase.modifyRecords(
-                        saving: batch,
-                        deleting: [],
-                        savePolicy: .changedKeys
-                    )
-
-                    // Check for individual record errors
-                    for (_, result) in saveResults {
-                        if case .failure(let error) = result {
-                            AppLogger.cloudSync.error("Failed to save record: \(error.localizedDescription)")
-                        }
-                    }
-                }
-            }
-
-            await MainActor.run {
-                lastSyncDate = Date()
-            }
-
-        } catch {
-            AppLogger.cloudSync.error("Cloud sync failed: \(error.localizedDescription)")
-            await MainActor.run {
-                syncError = error.localizedDescription
-            }
-        }
-    }
-
-    // MARK: - Backup Audio Recordings
-
-    func backupAudioRecordings() async {
-        guard isCloudAvailable, let privateDatabase = privateDatabase else { return }
-
-        await MainActor.run {
-            isSyncing = true
-            syncError = nil
-        }
-        defer { Task { @MainActor in isSyncing = false } }
-
-        do {
-            // Find local audio files
-            let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-            guard let audioDirectory = documentsURL?.appendingPathComponent("recordings") else { return }
-
-            let fileManager = FileManager.default
-            guard fileManager.fileExists(atPath: audioDirectory.path) else { return }
-
-            let audioFiles = try fileManager.contentsOfDirectory(
-                at: audioDirectory,
-                includingPropertiesForKeys: [.fileSizeKey, .creationDateKey],
-                options: .skipsHiddenFiles
-            )
-
-            for fileURL in audioFiles {
-                let recordID = CKRecord.ID(
-                    recordName: "audio_\(fileURL.lastPathComponent)",
-                    zoneID: recordZoneID
-                )
-
-                let record = CKRecord(recordType: Self.audioRecordType, recordID: recordID)
-                record["fileName"] = fileURL.lastPathComponent as CKRecordValue
-
-                let asset = CKAsset(fileURL: fileURL)
-                record["audioFile"] = asset
-
-                if let creationDate = try fileURL.resourceValues(forKeys: [.creationDateKey]).creationDate {
-                    record["recordingDate"] = creationDate as CKRecordValue
-                }
-
-                _ = try await privateDatabase.save(record)
-            }
+            try await db.collection("users").document(uid).setData([
+                "lastSynced": Timestamp(date: Date()),
+                "platform": "ios"
+            ], merge: true)
 
             await MainActor.run { lastSyncDate = Date() }
+            AppLogger.appEvent("Synced \(sessions.count) sessions to Firestore")
 
         } catch {
-            AppLogger.cloudSync.error("Audio backup failed: \(error.localizedDescription)")
+            AppLogger.error("Firestore sync failed", error: error)
             await MainActor.run { syncError = error.localizedDescription }
         }
     }
@@ -249,7 +97,10 @@ final class CloudSyncService {
     // MARK: - Restore From Cloud
 
     func restoreFromCloud() async -> [SleepSession] {
-        guard isCloudAvailable, let privateDatabase = privateDatabase else { return [] }
+        guard let uid = currentUserID else {
+            syncError = "Not signed in"
+            return []
+        }
 
         await MainActor.run {
             isSyncing = true
@@ -257,38 +108,37 @@ final class CloudSyncService {
         }
         defer { Task { @MainActor in isSyncing = false } }
 
-        var restoredSessions: [SleepSession] = []
-
         do {
-            let predicate = NSPredicate(value: true)
-            let query = CKQuery(recordType: Self.sessionRecordType, predicate: predicate)
-            query.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: false)]
+            let snapshot = try await db
+                .collection("users")
+                .document(uid)
+                .collection("sleep_sessions")
+                .order(by: "startTime", descending: true)
+                .getDocuments()
 
-            let (results, _) = try await privateDatabase.records(
-                matching: query,
-                inZoneWith: recordZoneID,
-                resultsLimit: CKQueryOperation.maximumResults
-            )
+            let sessions = snapshot.documents.compactMap { sleepSession(from: $0.data()) }
+            AppLogger.appEvent("✅ Restored \(sessions.count) sessions from Firestore")
+            return sessions
 
-            for (_, result) in results {
-                if case .success(let record) = result {
-                    if let session = sleepSession(from: record) {
-                        restoredSessions.append(session)
-                    }
-                }
-            }
         } catch {
-            AppLogger.cloudSync.error("Cloud restore failed: \(error.localizedDescription)")
+            AppLogger.error("Firestore restore failed", error: error)
             await MainActor.run { syncError = error.localizedDescription }
+            return []
         }
+    }
 
-        return restoredSessions
+    // MARK: - Check Cloud Status
+
+    func checkCloudStatus() async {
+        await MainActor.run {
+            isCloudAvailable = Auth.auth().currentUser != nil
+        }
     }
 
     // MARK: - Delete All Cloud Data
 
     func deleteAllCloudData() async {
-        guard isCloudAvailable, let privateDatabase = privateDatabase else { return }
+        guard let uid = currentUserID else { return }
 
         await MainActor.run {
             isSyncing = true
@@ -297,76 +147,62 @@ final class CloudSyncService {
         defer { Task { @MainActor in isSyncing = false } }
 
         do {
-            // Delete the entire zone to remove all records at once
-            _ = try await privateDatabase.modifyRecordZones(
-                saving: [],
-                deleting: [recordZoneID]
-            )
+            let snapshot = try await db
+                .collection("users")
+                .document(uid)
+                .collection("sleep_sessions")
+                .getDocuments()
 
-            // Recreate the zone for future use
-            let zone = CKRecordZone(zoneID: recordZoneID)
-            _ = try await privateDatabase.save(zone)
-
-            await MainActor.run {
-                lastSyncDate = nil
+            for doc in snapshot.documents {
+                try await doc.reference.delete()
             }
+
+            await MainActor.run { lastSyncDate = nil }
+            AppLogger.appEvent("🗑️ Deleted all Firestore sleep sessions")
+
         } catch {
-            AppLogger.cloudSync.error("Failed to delete cloud data: \(error.localizedDescription)")
+            AppLogger.error("Firestore delete failed", error: error)
             await MainActor.run { syncError = error.localizedDescription }
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Audio (not supported in Firestore — skipped)
 
-    private func sessionRecordName(for session: SleepSession) -> String {
-        let timestamp = Int(session.startTime.timeIntervalSince1970)
-        return "session_\(timestamp)"
+    func backupAudioRecordings() async {
+        AppLogger.appEvent("ℹ️ Audio backup not implemented for Firestore")
     }
 
-    private func fetchExistingSessionIDs() async throws -> Set<String> {
-        guard let db = privateDatabase else { return [] }
-        let predicate = NSPredicate(value: true)
-        let query = CKQuery(recordType: Self.sessionRecordType, predicate: predicate)
+    // MARK: - Helper
 
-        var existingIDs = Set<String>()
+    private func sleepSession(from data: [String: Any]) -> SleepSession? {
+        guard let startTimestamp = data["startTime"] as? Timestamp,
+              let endTimestamp = data["endTime"] as? Timestamp else { return nil }
 
-        let (results, _) = try await db.records(
-            matching: query,
-            inZoneWith: recordZoneID,
-            desiredKeys: [],
-            resultsLimit: CKQueryOperation.maximumResults
-        )
-
-        for (recordID, _) in results {
-            existingIDs.insert(recordID.recordName)
-        }
-
-        return existingIDs
-    }
-
-    private func sleepSession(from record: CKRecord) -> SleepSession? {
-        guard let startTime = record["startTime"] as? Date,
-              let endTime = record["endTime"] as? Date else {
-            return nil
-        }
-
-        let qualityRating = record["qualityRating"] as? Int ?? 3
+        let startTime = startTimestamp.dateValue()
+        let endTime = endTimestamp.dateValue()
+        let qualityRating = data["qualityRating"] as? Int ?? 3
         let quality = SleepQuality(rawValue: qualityRating) ?? .fair
-        let notes = record["notes"] as? String ?? ""
-        let morningMood = record["morningMood"] as? Int ?? 0
+        let notes = data["notes"] as? String ?? ""
+        let morningMood = data["morningMood"] as? Int ?? 0
 
         var movementPoints: [MovementDataPoint] = []
         var snoringEvents: [SnoringEvent] = []
         var sleepStages: [SleepStageEntry] = []
 
-        if let movementData = record["movementData"] as? Data {
-            movementPoints = (try? JSONDecoder().decode([MovementDataPoint].self, from: movementData)) ?? []
+        if let movementStr = data["movementData"] as? String,
+           let movementData = Data(base64Encoded: movementStr) {
+            movementPoints = (try? JSONDecoder().decode([MovementDataPoint].self,
+                                                        from: movementData)) ?? []
         }
-        if let snoringData = record["snoringData"] as? Data {
-            snoringEvents = (try? JSONDecoder().decode([SnoringEvent].self, from: snoringData)) ?? []
+        if let snoringStr = data["snoringData"] as? String,
+           let snoringData = Data(base64Encoded: snoringStr) {
+            snoringEvents = (try? JSONDecoder().decode([SnoringEvent].self,
+                                                       from: snoringData)) ?? []
         }
-        if let stageData = record["stageData"] as? Data {
-            sleepStages = (try? JSONDecoder().decode([SleepStageEntry].self, from: stageData)) ?? []
+        if let stageStr = data["stageData"] as? String,
+           let stageData = Data(base64Encoded: stageStr) {
+            sleepStages = (try? JSONDecoder().decode([SleepStageEntry].self,
+                                                     from: stageData)) ?? []
         }
 
         return SleepSession(

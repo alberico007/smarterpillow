@@ -54,24 +54,20 @@ final class SleepTrackingService {
         self.settings = settings
         AppLogger.tracking.info("Configured tracking service with settings")
 
-        // Load saved calibration baseline
         calibrationService.loadSavedBaseline()
 
-        // Schedule notifications based on settings
         notificationService.scheduleBedtimeReminder(
             at: settings.bedtimeReminderTime,
             enabled: settings.bedtimeReminderEnabled
         )
         notificationService.scheduleWeeklyDigest(enabled: settings.weeklyDigestEnabled)
 
-        // Configure smart alarm
         smartAlarmService.configure(
             time: settings.smartAlarmTime,
             windowMinutes: settings.smartAlarmWindowMinutes,
             enabled: settings.smartAlarmEnabled
         )
 
-        // Wind-down reminder
         notificationService.scheduleWindDownReminder(
             bedtime: settings.scheduledBedtime,
             minutesBefore: settings.windDownReminderMinutes,
@@ -91,7 +87,6 @@ final class SleepTrackingService {
 
         guard let settings = settings else { return }
 
-        // Start sensors
         if settings.trackMotion {
             motionService.startTracking(sensitivity: settings.sensitivityLevel)
         }
@@ -100,15 +95,12 @@ final class SleepTrackingService {
             audioService.startTracking()
         }
 
-        // Live Activity
         liveActivityService.startLiveActivity(startTime: now)
 
-        // Sleep Focus
         if settings.enableSleepFocus {
             sleepFocusService.enableSleepFocus()
         }
 
-        // Battery monitoring
         batteryService.startMonitoring()
         batteryCheckTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
@@ -116,12 +108,10 @@ final class SleepTrackingService {
             }
         }
 
-        // Calibration if needed
         if settings.calibrationEnabled && calibrationService.baseline == 0 {
             phase = .calibrating
             calibrationService.startCalibration(motionService: motionService, audioService: audioService)
 
-            // Watch for calibration completion
             Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
                 Task { @MainActor [weak self] in
                     guard let self = self else {
@@ -131,26 +121,21 @@ final class SleepTrackingService {
                     if case .completed = self.calibrationService.phase {
                         timer.invalidate()
                         self.phase = .tracking
-                        AppLogger.tracking.debug("Phase changed to: \(String(describing: self.phase))")
                     } else if case .skipped = self.calibrationService.phase {
                         timer.invalidate()
                         self.phase = .tracking
-                        AppLogger.tracking.debug("Phase changed to: \(String(describing: self.phase))")
                     }
                 }
             }
         } else {
             phase = .tracking
-            AppLogger.tracking.debug("Phase changed to: \(String(describing: self.phase))")
         }
 
-        // Smart alarm
         smartAlarmService.startMonitoring(
             motionService: motionService,
             notificationService: notificationService
         )
 
-        // Crash recovery periodic save
         crashRecoveryService.startPeriodicSave { [weak self] in
             guard let self = self, let start = self.startTime else { return nil }
             return RecoveryState(
@@ -162,7 +147,6 @@ final class SleepTrackingService {
             )
         }
 
-        // Elapsed time timer
         elapsedTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self = self, let start = self.startTime else { return }
@@ -175,7 +159,6 @@ final class SleepTrackingService {
             }
         }
 
-        // Update widget state
         UserDefaults.standard.set(true, forKey: "isCurrentlyTracking")
         WidgetCenter.shared.reloadAllTimelines()
     }
@@ -199,9 +182,7 @@ final class SleepTrackingService {
         sleepFocusService.disableSleepFocus()
 
         phase = .completing
-        AppLogger.tracking.debug("Phase changed to: \(String(describing: self.phase))")
 
-        // Update widget state
         UserDefaults.standard.set(false, forKey: "isCurrentlyTracking")
         WidgetCenter.shared.reloadAllTimelines()
     }
@@ -229,7 +210,7 @@ final class SleepTrackingService {
 
     // MARK: - Save Session
 
-    func saveSession(quality: SleepQuality, notes: String, modelContext: ModelContext) async {
+    func saveSession(quality: SleepQuality, notes: String, modelContext: ModelContext, cloudService: CloudSyncService) async {
         guard let start = startTime else { return }
         let end = Date()
 
@@ -237,7 +218,6 @@ final class SleepTrackingService {
         let snoringEvents = audioService.snoringEvents
         let stages = deriveSleepStages(from: movementPoints, start: start, end: end)
 
-        // Calculate onset latency
         let onsetLatency: Double
         if let firstSleepStage = stages.first(where: { $0.stage != .awake }) {
             onsetLatency = firstSleepStage.startTime.timeIntervalSince(start)
@@ -265,7 +245,6 @@ final class SleepTrackingService {
             AppLogger.error("Failed to save sleep session", error: error)
         }
 
-        // Sync to HealthKit if enabled
         if let settings = settings, settings.syncHealthKit {
             do {
                 try await healthKitService.saveSleepSession(session)
@@ -276,7 +255,6 @@ final class SleepTrackingService {
             }
         }
 
-        // Morning summary notification
         if let settings = settings, settings.morningSummaryEnabled {
             notificationService.sendMorningSummary(
                 duration: session.durationSeconds,
@@ -285,13 +263,16 @@ final class SleepTrackingService {
             )
         }
 
-        // Clear crash recovery
         crashRecoveryService.clearRecovery()
+
+        // Sync to Firestore
+        Task {
+            await cloudService.syncSessions([session])
+        }
 
         phase = .done
         AppLogger.tracking.debug("Phase changed to: \(String(describing: self.phase))")
 
-        // Check streak and celebrations
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         var streakCount = 1
@@ -311,13 +292,11 @@ final class SleepTrackingService {
             notificationService.sendStreakCelebration(streakCount: streakCount)
         }
 
-        // Goal achievement
         let goalHours = session.durationSeconds / 3600.0
         if let settings = settings, goalHours >= settings.sleepGoalHours {
             notificationService.sendGoalAchievement(hours: goalHours, goalHours: settings.sleepGoalHours)
         }
 
-        // Update widget data
         UserDefaults.standard.set(session.sleepScore, forKey: "lastSleepScore")
         let hours = Int(session.durationSeconds) / 3600
         let minutes = (Int(session.durationSeconds) % 3600) / 60
@@ -343,13 +322,12 @@ final class SleepTrackingService {
         guard !movementData.isEmpty else { return [] }
 
         var stages: [SleepStageEntry] = []
-        let windowDuration: TimeInterval = 1800 // 30 minutes
+        let windowDuration: TimeInterval = 1800
 
         var windowStart = start
         while windowStart < end {
             let windowEnd = min(windowStart.addingTimeInterval(windowDuration), end)
 
-            // Gather movement points in this window
             let windowPoints = movementData.filter { $0.timestamp >= windowStart && $0.timestamp < windowEnd }
             let avgIntensity: Double
             if windowPoints.isEmpty {
@@ -358,10 +336,8 @@ final class SleepTrackingService {
                 avgIntensity = windowPoints.map(\.intensity).reduce(0, +) / Double(windowPoints.count)
             }
 
-            // Apply calibration adjustment
             let calibratedIntensity = calibrationService.applyCalibration(to: avgIntensity)
 
-            // Determine stage based on intensity thresholds
             let stage: SleepStageType
             if calibratedIntensity > 0.15 {
                 stage = .awake

@@ -12,6 +12,7 @@ struct MorningReviewView: View {
 
     @Environment(SleepTrackingService.self) private var trackingService
     @Environment(WeatherService.self) private var weatherService
+    @Environment(CloudSyncService.self) private var cloudService
     @Environment(\.modelContext) private var modelContext
 
     @Query(sort: \SleepSession.startTime, order: .reverse)
@@ -28,7 +29,6 @@ struct MorningReviewView: View {
     @State private var intelligenceService = IntelligenceService()
     @State private var showingShareSheet = false
 
-    // Previous nights for comparison (up to 7, excluding the session being saved)
     private var previousSessions: [SleepSession] {
         Array(recentSessions.prefix(7))
     }
@@ -222,9 +222,9 @@ struct MorningReviewView: View {
                             await trackingService.saveSession(
                                 quality: selectedQuality,
                                 notes: notes,
-                                modelContext: modelContext
+                                modelContext: modelContext,
+                                cloudService: cloudService
                             )
-                            // Update mood on saved session
                             if let mood = selectedMood, let lastSession = recentSessions.first {
                                 lastSession.morningMood = mood.rawValue
                                 try? modelContext.save()
@@ -260,10 +260,8 @@ struct MorningReviewView: View {
             }
         }
         .task {
-            // Fetch weather
             await weatherService.fetchWakeUpWeather()
 
-            // Fetch heart rate and biometrics from Apple Watch via HealthKit
             if let start = trackingService.startTime {
                 heartRate = await trackingService.healthKitService.fetchHeartRate(
                     from: start,
@@ -273,7 +271,6 @@ struct MorningReviewView: View {
             }
             heartRateLoaded = true
 
-            // Generate AI summary
             if let start = trackingService.startTime {
                 let tempSession = SleepSession(
                     startTime: start,
@@ -337,7 +334,6 @@ private struct WeatherCard: View {
                 .frame(maxWidth: .infinity)
             } else if let weather = weatherService.weather {
                 HStack(spacing: 16) {
-                    // Weather icon
                     Image(systemName: weather.symbolName)
                         .font(.system(size: 42))
                         .symbolRenderingMode(.multicolor)
@@ -388,7 +384,6 @@ private struct SleepComparisonCard: View {
     let previousSessions: [SleepSession]
     let averageScore: Double
 
-    // We compare the MOST recent prior session vs the 7-night average
     private var lastSession: SleepSession? { previousSessions.first }
 
     private var trend: ComparisonTrend {
@@ -406,7 +401,6 @@ private struct SleepComparisonCard: View {
                     .font(.headline)
 
                 HStack(spacing: 0) {
-                    // Last night
                     if let last = lastSession {
                         StatBlock(
                             value: "\(last.sleepScore)",
@@ -417,7 +411,6 @@ private struct SleepComparisonCard: View {
 
                     Divider().frame(height: 40)
 
-                    // 7-night average
                     StatBlock(
                         value: "\(Int(averageScore.rounded()))",
                         label: "\(previousSessions.count)-Night Avg",
@@ -426,12 +419,10 @@ private struct SleepComparisonCard: View {
 
                     Divider().frame(height: 40)
 
-                    // Trend
                     TrendBadge(trend: trend)
                         .frame(maxWidth: .infinity)
                 }
 
-                // Mini sparkline
                 if previousSessions.count > 1 {
                     ScoreSparkline(sessions: previousSessions)
                         .frame(height: 32)
@@ -539,7 +530,6 @@ private struct ScoreSparkline: View {
                 style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
             )
 
-            // Dots
             ForEach(Array(scores.enumerated()), id: \.offset) { i, score in
                 let x = Double(i) * step
                 let y = h - ((score - minScore) / range * h)
@@ -549,74 +539,6 @@ private struct ScoreSparkline: View {
                     .position(x: x, y: y)
             }
         }
-    }
-}
-
-// MARK: - HeartRateCard
-
-private struct HeartRateCard: View {
-
-    let stats: HeartRateStats?
-
-    var body: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Label("Heart Rate", systemImage: "heart.fill")
-                        .font(.headline)
-                        .foregroundStyle(.red)
-                    Spacer()
-                    if stats?.isFromWatch == true {
-                        Label("Apple Watch", systemImage: "applewatch")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                if let stats = stats {
-                    HStack(spacing: 0) {
-                        HeartStatBlock(value: stats.averageFormatted, label: "Average", color: .red)
-                        Divider().frame(height: 40)
-                        HeartStatBlock(value: stats.minimumFormatted, label: "Lowest", color: .blue)
-                        Divider().frame(height: 40)
-                        HeartStatBlock(value: stats.maximumFormatted, label: "Highest", color: .orange)
-                    }
-
-                    Text("\(stats.sampleCount) samples recorded during sleep")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    HStack(spacing: 8) {
-                        Image(systemName: "applewatch.slash")
-                            .foregroundStyle(.secondary)
-                        Text("No heart rate data — pair an Apple Watch to see this during sleep.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - HeartStatBlock
-
-private struct HeartStatBlock: View {
-    let value: String
-    let label: String
-    let color: Color
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.subheadline)
-                .fontWeight(.bold)
-                .foregroundStyle(color)
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
     }
 }
 
@@ -670,7 +592,6 @@ private struct BiometricsCard: View {
                 }
 
                 if let hr = heartRate {
-                    // Heart Rate
                     HStack(spacing: 0) {
                         BiometricStatBlock(value: hr.averageFormatted, label: "Avg HR", icon: "heart.fill", color: .red)
                         Divider().frame(height: 40)
@@ -680,7 +601,6 @@ private struct BiometricsCard: View {
                     }
                 }
 
-                // Additional biometrics
                 if let bio = biometrics {
                     Divider()
 
@@ -847,7 +767,6 @@ private struct StageTimelineCard: View {
                     SleepStagesChart(stages: stages)
                         .frame(height: 120)
 
-                    // Stage summary
                     let total = stages.reduce(0.0) { $0 + $1.endTime.timeIntervalSince($1.startTime) }
                     HStack(spacing: 12) {
                         ForEach(SleepStageType.allCases) { stageType in

@@ -6,6 +6,7 @@
 //
 
 import AuthenticationServices
+import FirebaseAuth
 import os
 import SwiftData
 import SwiftUI
@@ -44,8 +45,10 @@ struct ProfileView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        if authService.isSignedIn {
-                            Label("Signed in with Apple", systemImage: "checkmark.circle.fill")
+                        if let firebaseUser = Auth.auth().currentUser {
+                            let isApple = firebaseUser.providerData.first?.providerID == "apple.com"
+                            Label(isApple ? "Signed in with Apple" : "Signed in with Email",
+                                  systemImage: "checkmark.circle.fill")
                                 .font(.caption)
                                 .foregroundStyle(.green)
                         }
@@ -75,7 +78,6 @@ struct ProfileView: View {
                     Slider(value: $settings.sleepGoalHours, in: 5...12, step: 0.5)
                         .tint(.green)
 
-                    // Age-based recommendation
                     let recommended = recommendedSleep(age: settings.userAge)
                     Text("Recommended for your age: \(recommended)")
                         .font(.caption)
@@ -85,11 +87,11 @@ struct ProfileView: View {
 
             // MARK: Account
             Section("Account") {
-                if authService.isSignedIn {
+                if let firebaseUser = Auth.auth().currentUser {
                     HStack {
-                        Text("Apple ID")
+                        Text(firebaseUser.providerData.first?.providerID == "apple.com" ? "Apple ID" : "Email")
                         Spacer()
-                        Text(authService.userEmail ?? "Connected")
+                        Text(firebaseUser.email ?? "Connected")
                             .foregroundStyle(.secondary)
                     }
 
@@ -129,6 +131,7 @@ struct ProfileView: View {
         .alert("Sign Out?", isPresented: $showingSignOutConfirmation) {
             Button("Sign Out", role: .destructive) {
                 authService.signOut()
+                settings.hasCompletedOnboarding = false
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -147,20 +150,15 @@ struct ProfileView: View {
     private func deleteEverything() {
         AppLogger.auth.info("🔐 User requested account & data deletion")
 
-        // 1. Delete all SwiftData sessions
         for session in sessions {
             modelContext.delete(session)
         }
         try? modelContext.save()
         AppLogger.auth.info("🔐 Deleted \(sessions.count) sleep sessions")
 
-        // 2. Delete Firebase user data & sign out
         authService.deleteFirebaseAccount()
-
-        // 3. Sign out of Apple ID
         authService.signOut()
 
-        // 4. Reset all settings to defaults
         settings.userName = ""
         settings.userLastName = ""
         settings.userAge = 30

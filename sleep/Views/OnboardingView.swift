@@ -2,12 +2,12 @@
 //  OnboardingView.swift
 //  sleep
 //
-//
-//
 
-import AuthenticationServices //for sign-in with Apple
-import os //for logging (used as AppLogger)
-import SwiftUI //for UI components
+import AuthenticationServices
+import FirebaseAuth
+import FirebaseFirestore
+import os
+import SwiftUI
 
 // MARK: - OnboardingView
 
@@ -22,7 +22,6 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            // Progress bar
             if currentPage > 0 {
                 ProgressBar(current: currentPage, total: totalPages)
                     .padding(.horizontal, 32)
@@ -30,7 +29,6 @@ struct OnboardingView: View {
                     .zIndex(1)
             }
 
-            // Pages — no swiping, button-driven only
             Group {
                 switch currentPage {
                 case 0:
@@ -108,7 +106,6 @@ private struct SplashPage: View {
             VStack(spacing: 20) {
                 Spacer(minLength: 40)
 
-                // Moon icon
                 ZStack {
                     Circle()
                         .stroke(.cyan.opacity(0.2), lineWidth: 2)
@@ -119,11 +116,7 @@ private struct SplashPage: View {
                     Image(systemName: "moon.zzz.fill")
                         .font(.system(size: 80))
                         .foregroundStyle(
-                            LinearGradient(
-                                colors: [.cyan, .blue],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
+                            LinearGradient(colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
                         )
                         .shadow(color: .cyan.opacity(0.6), radius: glowRadius)
                         .scaleEffect(iconScale)
@@ -131,25 +124,19 @@ private struct SplashPage: View {
                 }
 
                 Text("Welcome to Slumberscope")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                    .font(.largeTitle).fontWeight(.bold)
                     .multilineTextAlignment(.center)
-                    .offset(y: titleOffset)
-                    .opacity(titleOpacity)
+                    .offset(y: titleOffset).opacity(titleOpacity)
 
                 Text("Track your sleep patterns, detect snoring, and wake up refreshed with intelligent insights.")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
+                    .font(.body).foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
-                    .offset(y: subtitleOffset)
-                    .opacity(subtitleOpacity)
+                    .offset(y: subtitleOffset).opacity(subtitleOpacity)
 
-                // Team section
                 VStack(spacing: 12) {
                     Text("Meet the Team")
-                        .font(.title3)
-                        .fontWeight(.semibold)
+                        .font(.title3).fontWeight(.semibold)
                         .opacity(teamHeaderOpacity)
 
                     ForEach(Array(team.enumerated()), id: \.offset) { index, member in
@@ -178,15 +165,11 @@ private struct SplashPage: View {
                 .padding(.horizontal, 32)
 
                 VStack(spacing: 4) {
-                    Text("Gannon University")
-                        .font(.headline).fontWeight(.semibold)
-                    Text("Senior Design \u{2022} Spring 2026")
-                        .font(.subheadline).foregroundStyle(.secondary)
+                    Text("Gannon University").font(.headline).fontWeight(.semibold)
+                    Text("Senior Design \u{2022} Spring 2026").font(.subheadline).foregroundStyle(.secondary)
                 }
-                .opacity(universityOpacity)
-                .padding(.top, 8)
+                .opacity(universityOpacity).padding(.top, 8)
 
-                // Get Started button
                 PrimaryButton(title: "Get Started") { onContinue() }
                     .padding(.horizontal, 32)
                     .opacity(buttonOpacity)
@@ -236,9 +219,7 @@ private struct AccountSetupPage: View {
 
                 Image(systemName: "person.crop.circle.badge.plus")
                     .font(.system(size: 64))
-                    .foregroundStyle(
-                        LinearGradient(colors: [.cyan, .blue], startPoint: .top, endPoint: .bottom)
-                    )
+                    .foregroundStyle(LinearGradient(colors: [.cyan, .blue], startPoint: .top, endPoint: .bottom))
                     .opacity(titleOpacity)
 
                 Text("Create Your Profile")
@@ -272,38 +253,30 @@ private struct AccountSetupPage: View {
                 .padding(.horizontal, 32)
                 .opacity(contentOpacity)
 
-                // Age
                 VStack(spacing: 8) {
                     Text("Age").font(.subheadline).fontWeight(.medium).foregroundStyle(.secondary)
-
                     HStack(spacing: 24) {
                         Button { if age > 13 { age -= 1; updateGoalForAge() } } label: {
                             Image(systemName: "minus.circle.fill").font(.title).foregroundStyle(.secondary)
                         }
                         Text("\(age)")
                             .font(.system(size: 48, weight: .bold, design: .rounded))
-                            .foregroundStyle(.cyan)
-                            .frame(minWidth: 80)
+                            .foregroundStyle(.cyan).frame(minWidth: 80)
                         Button { if age < 100 { age += 1; updateGoalForAge() } } label: {
                             Image(systemName: "plus.circle.fill").font(.title).foregroundStyle(.secondary)
                         }
                     }
-
                     Text("Recommended: \(recommendedSleepLabel(forAge: age))")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 .opacity(contentOpacity)
 
-                // Sleep Goal
                 VStack(spacing: 8) {
                     Text("Your Sleep Goal").font(.subheadline).fontWeight(.medium).foregroundStyle(.secondary)
                     Text("\(String(format: "%.1f", goalHours)) hours")
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                        .foregroundStyle(.green)
-                    Slider(value: $goalHours, in: 5...12, step: 0.5)
-                        .tint(.green).padding(.horizontal, 40)
-                    Text("Adjust if you'd like a different target")
-                        .font(.caption).foregroundStyle(.tertiary)
+                        .font(.system(size: 36, weight: .bold, design: .rounded)).foregroundStyle(.green)
+                    Slider(value: $goalHours, in: 5...12, step: 0.5).tint(.green).padding(.horizontal, 40)
+                    Text("Adjust if you'd like a different target").font(.caption).foregroundStyle(.tertiary)
                 }
                 .opacity(contentOpacity)
 
@@ -318,9 +291,7 @@ private struct AccountSetupPage: View {
 
                 if firstName.trimmingCharacters(in: .whitespaces).isEmpty || lastName.trimmingCharacters(in: .whitespaces).isEmpty {
                     Text("Please enter your first and last name to continue")
-                        .font(.caption)
-                        .foregroundStyle(.red.opacity(0.8))
-                        .padding(.horizontal, 32)
+                        .font(.caption).foregroundStyle(.red.opacity(0.8)).padding(.horizontal, 32)
                 }
 
                 Spacer(minLength: 40)
@@ -338,9 +309,7 @@ private struct AccountSetupPage: View {
         }
     }
 
-    private func updateGoalForAge() {
-        goalHours = recommendedSleepHours(forAge: age)
-    }
+    private func updateGoalForAge() { goalHours = recommendedSleepHours(forAge: age) }
 
     private func saveProfile() {
         settings.userName = firstName
@@ -357,86 +326,228 @@ private struct SignInPage: View {
     let onContinue: () -> Void
 
     @Environment(AuthenticationService.self) private var authService
+    @State private var email = ""
+    @State private var password = ""
+    @State private var isSignUp = false
+    @State private var isLoading = false
+    @State private var errorMessage: String? = nil
+    @State private var didSignIn = false
+    @State private var showEmailForm = false
     @State private var titleOpacity: Double = 0
     @State private var contentOpacity: Double = 0
-    @State private var didSignIn = false
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable { case email, password }
 
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        ScrollView {
+            VStack(spacing: 24) {
+                Spacer(minLength: 50)
 
-            Image(systemName: "person.circle.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(.cyan)
-                .opacity(titleOpacity)
+                Image(systemName: "person.circle.fill")
+                    .font(.system(size: 64))
+                    .foregroundStyle(.cyan)
+                    .opacity(titleOpacity)
 
-            Text("Your Account")
-                .font(.title).fontWeight(.bold).opacity(titleOpacity)
+                Text("Your Account")
+                    .font(.title).fontWeight(.bold)
+                    .opacity(titleOpacity)
 
-            Text("Sign in with Apple to securely save your sleep data. Your information stays private and encrypted.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-                .opacity(contentOpacity)
+                Text("Sign in to securely save your sleep data.")
+                    .font(.subheadline).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                    .opacity(contentOpacity)
 
-            if didSignIn {
-                // Success state
-                VStack(spacing: 12) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.green)
-                    Text("Signed in successfully!")
-                        .font(.headline)
-                }
-                .transition(.scale.combined(with: .opacity))
-            } else {
-                SignInWithAppleButton(.signIn) { request in
-                    AppLogger.auth.info("🔐 Sign In with Apple request initiated")
-                    request.requestedScopes = [.fullName, .email]
-                    let hashedNonce = authService.prepareNonce()
-                    request.nonce = hashedNonce
-                } onCompletion: { result in
-                    switch result {
-                    case .success(let auth):
-                        AppLogger.auth.info("🔐 Sign In with Apple succeeded")
-                        authService.handleAuthorization(result: auth)
-                        withAnimation { didSignIn = true }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            onContinue()
-                        }
-                    case .failure(let error):
-                        AppLogger.auth.error("🔐 Sign In with Apple failed: \(error.localizedDescription)")
+                if didSignIn {
+                    VStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 48)).foregroundStyle(.green)
+                        Text("Signed in successfully!")
+                            .font(.headline)
                     }
+                    .transition(.scale.combined(with: .opacity))
+
+                } else {
+                    VStack(spacing: 16) {
+
+                        // MARK: Sign in with Apple
+                        SignInWithAppleButton(.signIn) { request in
+                            AppLogger.auth.info("🔐 Sign In with Apple request initiated")
+                            request.requestedScopes = [.fullName, .email]
+                            let hashedNonce = authService.prepareNonce()
+                            request.nonce = hashedNonce
+                        } onCompletion: { result in
+                            switch result {
+                            case .success(let auth):
+                                AppLogger.auth.info("🔐 Sign In with Apple succeeded")
+                                authService.handleAuthorization(result: auth)
+                                withAnimation { didSignIn = true }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { onContinue() }
+                            case .failure(let error):
+                                AppLogger.auth.error("🔐 Apple sign-in failed: \(error.localizedDescription)")
+                            }
+                        }
+                        .signInWithAppleButtonStyle(.whiteOutline)
+                        .frame(height: 50)
+
+                        // Divider
+                        HStack {
+                            Rectangle().fill(Color.secondary.opacity(0.3)).frame(height: 1)
+                            Text("or").font(.caption).foregroundStyle(.secondary).padding(.horizontal, 8)
+                            Rectangle().fill(Color.secondary.opacity(0.3)).frame(height: 1)
+                        }
+
+                        // MARK: Email option
+                        if showEmailForm {
+                            VStack(spacing: 14) {
+
+                                // Email field
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Email").font(.subheadline).fontWeight(.medium).foregroundStyle(.secondary)
+                                    TextField("your@email.com", text: $email)
+                                        .textContentType(.emailAddress)
+                                        .keyboardType(.emailAddress)
+                                        .textInputAutocapitalization(.never)
+                                        .autocorrectionDisabled()
+                                        .focused($focusedField, equals: .email)
+                                        .padding(12).background(.regularMaterial)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        .submitLabel(.next)
+                                        .onSubmit { focusedField = .password }
+                                }
+
+                                // Password field
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Password").font(.subheadline).fontWeight(.medium).foregroundStyle(.secondary)
+                                    SecureField("Password", text: $password)
+                                        .textContentType(isSignUp ? .newPassword : .password)
+                                        .focused($focusedField, equals: .password)
+                                        .padding(12).background(.regularMaterial)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        .submitLabel(.done)
+                                        .onSubmit { focusedField = nil; handleAuth() }
+                                }
+
+                                // Error message
+                                if let error = errorMessage {
+                                    Text(error).font(.caption).foregroundStyle(.red)
+                                        .multilineTextAlignment(.center)
+                                }
+
+                                // Submit button
+                                if isLoading {
+                                    ProgressView().padding()
+                                } else {
+                                    PrimaryButton(title: isSignUp ? "Create Account" : "Sign In") {
+                                        handleAuth()
+                                    }
+                                    .disabled(email.isEmpty || password.isEmpty)
+                                    .opacity(email.isEmpty || password.isEmpty ? 0.5 : 1.0)
+                                }
+
+                                // Toggle sign in / sign up
+                                Button {
+                                    withAnimation { isSignUp.toggle(); errorMessage = nil }
+                                } label: {
+                                    Text(isSignUp ? "Already have an account? Sign In" : "Don't have an account? Create one")
+                                        .font(.subheadline).foregroundStyle(.cyan)
+                                }
+                            }
+                            .transition(.move(edge: .top).combined(with: .opacity))
+
+                        } else {
+                            // Show email button
+                            Button {
+                                withAnimation { showEmailForm = true }
+                            } label: {
+                                HStack {
+                                    Image(systemName: "envelope.fill")
+                                    Text("Continue with Email").font(.headline)
+                                }
+                                .frame(maxWidth: .infinity).padding()
+                                .background(.regularMaterial)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 40)
+                    .opacity(contentOpacity)
                 }
-                .signInWithAppleButtonStyle(.whiteOutline)
-                .frame(height: 50)
-                .padding(.horizontal, 40)
-                .opacity(contentOpacity)
-            }
 
-            HStack(spacing: 8) {
-                Image(systemName: "lock.shield.fill").foregroundStyle(.green)
-                Text("Your data is encrypted and private.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            .opacity(contentOpacity)
-
-            Spacer()
-
-            if !didSignIn {
-                Button("Skip for Now") {
-                    onContinue()
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.shield.fill").foregroundStyle(.green)
+                    Text("Your data is encrypted and private.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
-                .font(.headline)
-                .foregroundStyle(.secondary)
-                .padding(.bottom, 50)
                 .opacity(contentOpacity)
+
+                Spacer()
+
+                if !didSignIn {
+                    Button("Skip for Now") { onContinue() }
+                        .font(.headline).foregroundStyle(.secondary)
+                        .padding(.bottom, 50)
+                        .opacity(contentOpacity)
+                }
             }
         }
+        .scrollIndicators(.hidden)
+        .onTapGesture { focusedField = nil }
         .onAppear {
             withAnimation(.easeOut(duration: 0.4)) { titleOpacity = 1 }
             withAnimation(.easeOut(duration: 0.4).delay(0.2)) { contentOpacity = 1 }
+        }
+    }
+
+    private func handleAuth() {
+        guard !email.isEmpty, !password.isEmpty else { return }
+        isLoading = true
+        errorMessage = nil
+        focusedField = nil
+
+        Task {
+            do {
+                if isSignUp {
+                    let result = try await Auth.auth().createUser(withEmail: email, password: password)
+                    let uid = result.user.uid
+                    let db = Firestore.firestore()
+                    try await db.collection("users").document(uid).setData([
+                        "email": email,
+                        "createdAt": FieldValue.serverTimestamp(),
+                        "lastSynced": FieldValue.serverTimestamp(),
+                        "platform": "ios"
+                    ], merge: true)
+                    AppLogger.auth.info("🔐 New account created — uid: \(uid)")
+                } else {
+                    let result = try await Auth.auth().signIn(withEmail: email, password: password)
+                    AppLogger.auth.info("🔐 Signed in — uid: \(result.user.uid)")
+                }
+
+                await MainActor.run {
+                    isLoading = false
+                    withAnimation { didSignIn = true }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { onContinue() }
+                }
+            } catch {
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = friendlyError(error)
+                }
+            }
+        }
+    }
+
+    private func friendlyError(_ error: Error) -> String {
+        let code = (error as NSError).code
+        switch code {
+        case 17007: return "An account with this email already exists."
+        case 17009: return "Incorrect password. Please try again."
+        case 17011: return "No account found with this email."
+        case 17026: return "Password must be at least 6 characters."
+        case 17008: return "Please enter a valid email address."
+        default: return error.localizedDescription
         }
     }
 }
@@ -460,9 +571,7 @@ private struct PermissionsPage: View {
 
             Image(systemName: "lock.shield.fill")
                 .font(.system(size: 64))
-                .foregroundStyle(
-                    LinearGradient(colors: [.cyan, .blue], startPoint: .top, endPoint: .bottom)
-                )
+                .foregroundStyle(LinearGradient(colors: [.cyan, .blue], startPoint: .top, endPoint: .bottom))
                 .opacity(titleOpacity)
 
             Text("Permissions")
@@ -470,8 +579,7 @@ private struct PermissionsPage: View {
 
             Text("Slumberscope needs a few permissions to track your sleep effectively.")
                 .font(.subheadline).foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+                .multilineTextAlignment(.center).padding(.horizontal, 40)
                 .opacity(subtitleOpacity)
 
             VStack(spacing: 16) {
@@ -503,25 +611,18 @@ private struct PermissionsPage: View {
                     }
                 } label: {
                     HStack {
-                        if isRequesting {
-                            ProgressView().tint(.white).padding(.trailing, 4)
-                        }
-                        Text(isRequesting ? "Requesting\u{2026}" : "Grant Permissions & Continue")
-                            .font(.headline)
+                        if isRequesting { ProgressView().tint(.white).padding(.trailing, 4) }
+                        Text(isRequesting ? "Requesting\u{2026}" : "Grant Permissions & Continue").font(.headline)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
+                    .frame(maxWidth: .infinity).padding()
                     .background(LinearGradient(colors: [.cyan, .blue], startPoint: .leading, endPoint: .trailing))
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
-                .padding(.horizontal, 32)
-                .opacity(buttonOpacity)
-                .disabled(isRequesting)
+                .padding(.horizontal, 32).opacity(buttonOpacity).disabled(isRequesting)
 
                 Button("Skip for Now") { onContinue() }
-                    .font(.subheadline).foregroundStyle(.secondary)
-                    .opacity(buttonOpacity)
+                    .font(.subheadline).foregroundStyle(.secondary).opacity(buttonOpacity)
             }
             .padding(.bottom, 40)
         }
@@ -551,7 +652,6 @@ private struct InteractiveTutorialPage: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Skip button at top
             HStack {
                 Spacer()
                 Button("Skip Tutorial") { onComplete() }
@@ -579,7 +679,6 @@ private struct InteractiveTutorialPage: View {
 
             Spacer()
 
-            // Step indicator
             HStack(spacing: 8) {
                 ForEach(0..<totalSteps, id: \.self) { i in
                     Circle()
@@ -589,12 +688,9 @@ private struct InteractiveTutorialPage: View {
             }
             .padding(.bottom, 16)
 
-            // Next / Finish button
             PrimaryButton(title: tutorialStep < totalSteps - 1 ? "Next" : "Start Sleeping Better") {
                 if tutorialStep < totalSteps - 1 {
-                    withAnimation {
-                        stepOpacity = 0
-                    }
+                    withAnimation { stepOpacity = 0 }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                         tutorialStep += 1
                         withAnimation(.easeOut(duration: 0.3)) { stepOpacity = 1 }
@@ -603,50 +699,32 @@ private struct InteractiveTutorialPage: View {
                     onComplete()
                 }
             }
-            .padding(.horizontal, 32)
-            .padding(.bottom, 40)
+            .padding(.horizontal, 32).padding(.bottom, 40)
         }
         .onAppear {
             withAnimation(.easeOut(duration: 0.4)) { stepOpacity = 1 }
         }
     }
 
-    // MARK: Tutorial Steps
-
     private var placementStep: some View {
         VStack(spacing: 20) {
-            // Animated phone on bed
             ZStack {
-                // Bed
                 RoundedRectangle(cornerRadius: 20)
                     .fill(LinearGradient(colors: [.indigo.opacity(0.3), .purple.opacity(0.2)], startPoint: .top, endPoint: .bottom))
                     .frame(width: 260, height: 140)
-
-                // Pillow
-                Capsule()
-                    .fill(.white.opacity(0.15))
-                    .frame(width: 100, height: 50)
-                    .offset(x: -60, y: -10)
-
-                // Phone
+                Capsule().fill(.white.opacity(0.15)).frame(width: 100, height: 50).offset(x: -60, y: -10)
                 RoundedRectangle(cornerRadius: 8)
                     .fill(LinearGradient(colors: [.cyan.opacity(0.8), .blue.opacity(0.6)], startPoint: .top, endPoint: .bottom))
                     .frame(width: 35, height: 65)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(.white.opacity(0.3), lineWidth: 1)
-                    )
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.white.opacity(0.3), lineWidth: 1))
                     .offset(x: 20, y: phoneOffset > 0 ? phoneOffset : 0)
                     .shadow(color: .cyan.opacity(0.4), radius: 8)
             }
             .onAppear {
-                withAnimation(.spring(response: 0.8, dampingFraction: 0.6).delay(0.3)) {
-                    phoneOffset = 0
-                }
+                withAnimation(.spring(response: 0.8, dampingFraction: 0.6).delay(0.3)) { phoneOffset = 0 }
             }
 
-            Text("Place Your Phone")
-                .font(.title2).fontWeight(.bold)
+            Text("Place Your Phone").font(.title2).fontWeight(.bold)
 
             VStack(alignment: .leading, spacing: 12) {
                 TutorialBullet(icon: "bed.double.fill", color: .indigo, text: "Place on mattress near your pillow")
@@ -660,84 +738,56 @@ private struct InteractiveTutorialPage: View {
 
     private var trackingStep: some View {
         VStack(spacing: 20) {
-            // Mock tracking circle
             ZStack {
-                Circle()
-                    .stroke(.cyan.opacity(0.2), lineWidth: 3)
-                    .frame(width: 160, height: 160)
-
+                Circle().stroke(.cyan.opacity(0.2), lineWidth: 3).frame(width: 160, height: 160)
                 Circle()
                     .trim(from: 0, to: mockTracking ? 0.7 : 0)
                     .stroke(
                         LinearGradient(colors: [.cyan, .blue], startPoint: .top, endPoint: .bottom),
                         style: StrokeStyle(lineWidth: 6, lineCap: .round)
                     )
-                    .frame(width: 160, height: 160)
-                    .rotationEffect(.degrees(-90))
-
+                    .frame(width: 160, height: 160).rotationEffect(.degrees(-90))
                 VStack(spacing: 4) {
-                    Image(systemName: "moon.zzz.fill")
-                        .font(.system(size: 32))
-                        .foregroundStyle(.cyan)
-                    Text(mockTracking ? "Tracking..." : "Ready")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Image(systemName: "moon.zzz.fill").font(.system(size: 32)).foregroundStyle(.cyan)
+                    Text(mockTracking ? "Tracking..." : "Ready").font(.caption).foregroundStyle(.secondary)
                 }
             }
             .onAppear {
-                withAnimation(.easeInOut(duration: 2.0).delay(0.5)) {
-                    mockTracking = true
-                }
+                withAnimation(.easeInOut(duration: 2.0).delay(0.5)) { mockTracking = true }
             }
 
-            Text("Sleep Tracking")
-                .font(.title2).fontWeight(.bold)
-
+            Text("Sleep Tracking").font(.title2).fontWeight(.bold)
             Text("Tap \"Track\" to start recording. Slumberscope monitors your movement, audio, and sleep stages throughout the night.")
                 .font(.subheadline).foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+                .multilineTextAlignment(.center).padding(.horizontal, 40)
         }
     }
 
     private var resultsStep: some View {
         VStack(spacing: 20) {
-            // Mock score ring
             ZStack {
-                Circle()
-                    .stroke(.secondary.opacity(0.2), lineWidth: 8)
-                    .frame(width: 140, height: 140)
-
+                Circle().stroke(.secondary.opacity(0.2), lineWidth: 8).frame(width: 140, height: 140)
                 Circle()
                     .trim(from: 0, to: mockScore)
                     .stroke(
                         LinearGradient(colors: [.green, .cyan], startPoint: .top, endPoint: .bottom),
                         style: StrokeStyle(lineWidth: 8, lineCap: .round)
                     )
-                    .frame(width: 140, height: 140)
-                    .rotationEffect(.degrees(-90))
-
+                    .frame(width: 140, height: 140).rotationEffect(.degrees(-90))
                 VStack(spacing: 2) {
-                    Text("\(Int(mockScore * 100))")
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
-                    Text("Sleep Score")
-                        .font(.caption2).foregroundStyle(.secondary)
+                    Text("\(Int(mockScore * 100))").font(.system(size: 40, weight: .bold, design: .rounded))
+                    Text("Sleep Score").font(.caption2).foregroundStyle(.secondary)
                 }
             }
             .onAppear {
-                withAnimation(.easeOut(duration: 1.5).delay(0.3)) {
-                    mockScore = 0.85
-                }
+                withAnimation(.easeOut(duration: 1.5).delay(0.3)) { mockScore = 0.85 }
             }
 
-            Text("Morning Review")
-                .font(.title2).fontWeight(.bold)
-
+            Text("Morning Review").font(.title2).fontWeight(.bold)
             Text("Each morning you'll get a sleep score, detailed breakdown of your sleep stages, snoring events, and personalized tips.")
                 .font(.subheadline).foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+                .multilineTextAlignment(.center).padding(.horizontal, 40)
 
-            // Mock stats
             HStack(spacing: 24) {
                 MockStat(label: "Deep", value: "1h 42m", color: .indigo)
                 MockStat(label: "REM", value: "2h 05m", color: .cyan)
@@ -752,38 +802,27 @@ private struct InteractiveTutorialPage: View {
 
             Image(systemName: "brain.head.profile.fill")
                 .font(.system(size: 64))
-                .foregroundStyle(
-                    LinearGradient(colors: [.purple, .pink], startPoint: .top, endPoint: .bottom)
-                )
+                .foregroundStyle(LinearGradient(colors: [.purple, .pink], startPoint: .top, endPoint: .bottom))
 
-            Text("AI Sleep Coach")
-                .font(.title2).fontWeight(.bold)
+            Text("AI Sleep Coach").font(.title2).fontWeight(.bold)
 
             if #available(iOS 26, *) {
                 Text("Your device supports Apple Intelligence! Get personalized insights powered by on-device AI.")
                     .font(.subheadline).foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-
-                Toggle("Enable AI Coaching", isOn: $settings.aiCoachingEnabled)
-                    .padding(.horizontal, 40)
-
+                    .multilineTextAlignment(.center).padding(.horizontal, 40)
+                Toggle("Enable AI Coaching", isOn: $settings.aiCoachingEnabled).padding(.horizontal, 40)
                 HStack(spacing: 8) {
                     Image(systemName: "lock.shield.fill").foregroundStyle(.green)
-                    Text("All AI runs on-device. No data leaves your phone.")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Text("All AI runs on-device. No data leaves your phone.").font(.caption).foregroundStyle(.secondary)
                 }
                 .padding(.horizontal, 40)
             } else {
                 Text("AI coaching requires iPhone 15 Pro or newer. You'll still get rule-based sleep tips and insights.")
                     .font(.subheadline).foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-
+                    .multilineTextAlignment(.center).padding(.horizontal, 40)
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                    Text("Rule-based coaching is enabled by default.")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Text("Rule-based coaching is enabled by default.").font(.caption).foregroundStyle(.secondary)
                 }
             }
         }
@@ -798,10 +837,8 @@ private struct PrimaryButton: View {
 
     var body: some View {
         Button(action: action) {
-            Text(title)
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-                .padding()
+            Text(title).font(.headline)
+                .frame(maxWidth: .infinity).padding()
                 .background(LinearGradient(colors: [.cyan, .blue], startPoint: .leading, endPoint: .trailing))
                 .foregroundStyle(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -816,11 +853,8 @@ private struct TutorialBullet: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.body).foregroundStyle(color)
-                .frame(width: 32)
-            Text(text)
-                .font(.subheadline).foregroundStyle(.secondary)
+            Image(systemName: icon).font(.body).foregroundStyle(color).frame(width: 32)
+            Text(text).font(.subheadline).foregroundStyle(.secondary)
         }
     }
 }
@@ -832,10 +866,8 @@ private struct MockStat: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            Text(value)
-                .font(.subheadline).fontWeight(.bold).foregroundStyle(color)
-            Text(label)
-                .font(.caption2).foregroundStyle(.secondary)
+            Text(value).font(.subheadline).fontWeight(.bold).foregroundStyle(color)
+            Text(label).font(.caption2).foregroundStyle(.secondary)
         }
     }
 }
@@ -849,8 +881,7 @@ private struct PermissionRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.title3).foregroundStyle(color)
+            Image(systemName: icon).font(.title3).foregroundStyle(color)
                 .frame(width: 36, height: 36)
                 .background(color.opacity(0.15))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
