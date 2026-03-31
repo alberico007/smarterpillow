@@ -178,4 +178,4 @@ struct ProfileView: View {
     private func recommendedSleep(age: Int) -> String {
         recommendedSleepLabel(forAge: age)
     }
-}
+
