@@ -2,7 +2,7 @@
 //  FactorLoggingView.swift
 //  sleep
 //
-//  Created by Michael Berinshteyn on 3/17/26.
+//
 //
 
 import SwiftData
@@ -12,6 +12,9 @@ struct FactorLoggingView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+
+    @Query(sort: \SleepFactor.date, order: .reverse)
+    private var allFactors: [SleepFactor]
 
     @State private var selectedFactors: Set<FactorType> = []
     @State private var customLabel = ""
@@ -98,10 +101,22 @@ struct FactorLoggingView: View {
                     Button("Cancel") { dismiss() }
                 }
             }
+            .onAppear {
+                let calendar = Calendar.current
+                let todayFactors = allFactors.filter { calendar.isDateInToday($0.date) }
+                selectedFactors = Set(todayFactors.compactMap { FactorType(rawValue: $0.factorType) })
+            }
         }
     }
 
     private func saveFactor() {
+        // Delete today's existing factors first to avoid duplicates
+        let calendar = Calendar.current
+        for factor in allFactors where calendar.isDateInToday(factor.date) {
+            modelContext.delete(factor)
+        }
+
+        // Insert the newly selected factors
         for factor in selectedFactors {
             let entry = SleepFactor(date: Date(), type: factor)
             modelContext.insert(entry)

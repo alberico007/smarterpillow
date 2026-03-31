@@ -5,6 +5,7 @@
 //  Created by Michael Berinshteyn on 3/17/26.
 //
 
+import SwiftData
 import SwiftUI
 
 struct WindDownView: View {
@@ -13,14 +14,22 @@ struct WindDownView: View {
     @Environment(SleepTrackingService.self) private var trackingService
     @Environment(SoundService.self) private var soundService
 
+    @Query(sort: \SleepFactor.date, order: .reverse)
+    private var allFactors: [SleepFactor]
+
     @State private var showingSoundMixer = false
     @State private var showingFactorLog = false
+
+    private var todayFactors: [SleepFactor] {
+        let calendar = Calendar.current
+        return allFactors.filter { calendar.isDateInToday($0.date) }
+    }
 
     private var timeUntilBed: TimeInterval {
         let calendar = Calendar.current
         let now = Date()
         let bedtime = settings.scheduledBedtime
-        var components = calendar.dateComponents([.hour, .minute], from: bedtime)
+        let components = calendar.dateComponents([.hour, .minute], from: bedtime)
         var target = calendar.date(bySettingHour: components.hour ?? 23, minute: components.minute ?? 0, second: 0, of: now)!
         if target < now { target = calendar.date(byAdding: .day, value: 1, to: target)! }
         return target.timeIntervalSince(now)
@@ -29,6 +38,7 @@ struct WindDownView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
+
                 // Bedtime countdown
                 GlassCard {
                     VStack(spacing: 8) {
@@ -142,10 +152,32 @@ struct WindDownView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
+                        // Show today's logged factors
+                        if !todayFactors.isEmpty {
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 8)], spacing: 8) {
+                                ForEach(todayFactors) { factor in
+                                    HStack(spacing: 4) {
+                                        Image(systemName: factor.type.icon)
+                                            .font(.caption)
+                                            .foregroundStyle(factor.type.color)
+                                        Text(factor.displayLabel)
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                    }
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(factor.type.color.opacity(0.12))
+                                    .clipShape(Capsule())
+                                    .overlay(Capsule().stroke(factor.type.color.opacity(0.4), lineWidth: 1))
+                                }
+                            }
+                        }
+
                         Button {
                             showingFactorLog = true
                         } label: {
-                            Label("Log Factors", systemImage: "plus.circle.fill")
+                            Label(todayFactors.isEmpty ? "Log Factors" : "Update Factors",
+                                  systemImage: "plus.circle.fill")
                                 .font(.subheadline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)

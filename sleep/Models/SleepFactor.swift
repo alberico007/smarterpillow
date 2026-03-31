@@ -2,7 +2,7 @@
 //  SleepFactor.swift
 //  sleep
 //
-//  Created by Michael Berinshteyn on 3/17/26.
+//  
 //
 
 import Foundation

@@ -19,6 +19,7 @@ struct ProfileView: View {
     @State private var showingDeleteConfirmation = false
     @State private var showingSignOutConfirmation = false
     @State private var isDeleting = false
+    @State private var firebaseUser: FirebaseAuth.User? = Auth.auth().currentUser
 
     private let genderOptions = ["Not specified", "Male", "Female", "Non-binary", "Prefer not to say"]
 
@@ -45,8 +46,8 @@ struct ProfileView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        if let firebaseUser = Auth.auth().currentUser {
-                            let isApple = firebaseUser.providerData.first?.providerID == "apple.com"
+                        if let user = firebaseUser {
+                            let isApple = user.providerData.first?.providerID == "apple.com"
                             Label(isApple ? "Signed in with Apple" : "Signed in with Email",
                                   systemImage: "checkmark.circle.fill")
                                 .font(.caption)
@@ -87,11 +88,11 @@ struct ProfileView: View {
 
             // MARK: Account
             Section("Account") {
-                if let firebaseUser = Auth.auth().currentUser {
+                if let user = firebaseUser {
                     HStack {
-                        Text(firebaseUser.providerData.first?.providerID == "apple.com" ? "Apple ID" : "Email")
+                        Text(user.providerData.first?.providerID == "apple.com" ? "Apple ID" : "Email")
                         Spacer()
-                        Text(firebaseUser.email ?? "Connected")
+                        Text(user.email ?? "Connected")
                             .foregroundStyle(.secondary)
                     }
 
@@ -108,6 +109,7 @@ struct ProfileView: View {
                             if let name = authService.userName {
                                 settings.userName = name
                             }
+                            firebaseUser = Auth.auth().currentUser
                         case .failure(let error):
                             print("Sign in failed: \(error)")
                         }
@@ -128,9 +130,13 @@ struct ProfileView: View {
         }
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            firebaseUser = Auth.auth().currentUser
+        }
         .alert("Sign Out?", isPresented: $showingSignOutConfirmation) {
             Button("Sign Out", role: .destructive) {
                 authService.signOut()
+                firebaseUser = nil
                 settings.hasCompletedOnboarding = false
             }
             Button("Cancel", role: .cancel) {}
@@ -158,6 +164,7 @@ struct ProfileView: View {
 
         authService.deleteFirebaseAccount()
         authService.signOut()
+        firebaseUser = nil
 
         settings.userName = ""
         settings.userLastName = ""
