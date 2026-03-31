@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		06E3957E54A45E3507B6CA2F /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 8BFC7BB473584B490F2A5684 /* FirebaseFirestore */; };
 		D1911F3D13DFDDEA09DB5F88 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 1F95F2D99F5E0C0C8819AC62 /* FirebaseAuth */; };
+		AC01DA0E2F68C1800016FAE5 /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AC01DA0C2F68C1800016FAE5 /* WatchConnectivity.framework */; };
+		AC01DA0F2F68C1800016FAE5 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AC01DA0D2F68C1800016FAE5 /* HealthKit.framework */; };
+		AC01DA112F68C1800016FAE5 /* sleepWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = AC01DA012F68C1800016FAE5 /* sleepWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -26,12 +29,36 @@
 			remoteGlobalIDString = 4C00DA172F68C1800016FAE5;
 			remoteInfo = sleep;
 		};
+		AC01DA0A2F68C1800016FAE5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4C00DA102F68C1800016FAE5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AC01DA032F68C1800016FAE5;
+			remoteInfo = sleepWatch;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AC01DA102F68C1800016FAE5 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				AC01DA112F68C1800016FAE5 /* sleepWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		4C00DA182F68C1800016FAE5 /* Slumberscope.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Slumberscope.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C00DA252F68C1810016FAE5 /* sleepTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = sleepTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C00DA2F2F68C1810016FAE5 /* sleepUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = sleepUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC01DA012F68C1800016FAE5 /* sleepWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sleepWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC01DA0C2F68C1800016FAE5 /* WatchConnectivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WatchConnectivity.framework; path = System/Library/Frameworks/WatchConnectivity.framework; sourceTree = SDKROOT; };
+		AC01DA0D2F68C1800016FAE5 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -48,6 +75,11 @@
 		4C00DA322F68C1810016FAE5 /* sleepUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = sleepUITests;
+			sourceTree = "<group>";
+		};
+		AC01DA022F68C1800016FAE5 /* sleepWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = sleepWatch;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -76,6 +108,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AC01DA052F68C1800016FAE5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AC01DA0E2F68C1800016FAE5 /* WatchConnectivity.framework in Frameworks */,
+				AC01DA0F2F68C1800016FAE5 /* HealthKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -85,6 +126,7 @@
 				4C00DA1A2F68C1800016FAE5 /* sleep */,
 				4C00DA282F68C1810016FAE5 /* sleepTests */,
 				4C00DA322F68C1810016FAE5 /* sleepUITests */,
+				AC01DA022F68C1800016FAE5 /* sleepWatch */,
 				4C00DA192F68C1800016FAE5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -95,6 +137,7 @@
 				4C00DA182F68C1800016FAE5 /* Slumberscope.app */,
 				4C00DA252F68C1810016FAE5 /* sleepTests.xctest */,
 				4C00DA2F2F68C1810016FAE5 /* sleepUITests.xctest */,
+				AC01DA012F68C1800016FAE5 /* sleepWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -109,10 +152,12 @@
 				4C00DA142F68C1800016FAE5 /* Sources */,
 				4C00DA152F68C1800016FAE5 /* Frameworks */,
 				4C00DA162F68C1800016FAE5 /* Resources */,
+				AC01DA102F68C1800016FAE5 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				AC01DA0B2F68C1800016FAE5 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				4C00DA1A2F68C1800016FAE5 /* sleep */,
@@ -168,6 +213,26 @@
 			productReference = 4C00DA2F2F68C1810016FAE5 /* sleepUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		AC01DA032F68C1800016FAE5 /* sleepWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AC01DA092F68C1800016FAE5 /* Build configuration list for PBXNativeTarget "sleepWatch" */;
+			buildPhases = (
+				AC01DA042F68C1800016FAE5 /* Sources */,
+				AC01DA052F68C1800016FAE5 /* Frameworks */,
+				AC01DA062F68C1800016FAE5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AC01DA022F68C1800016FAE5 /* sleepWatch */,
+			);
+			name = sleepWatch;
+			productName = sleepWatch;
+			productReference = AC01DA012F68C1800016FAE5 /* sleepWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -188,6 +253,9 @@
 					4C00DA2E2F68C1810016FAE5 = {
 						CreatedOnToolsVersion = 26.3;
 						TestTargetID = 4C00DA172F68C1800016FAE5;
+					};
+					AC01DA032F68C1800016FAE5 = {
+						CreatedOnToolsVersion = 26.3;
 					};
 				};
 			};
@@ -210,6 +278,7 @@
 			targets = (
 				4C00DA172F68C1800016FAE5 /* sleep */,
 				4C00DA242F68C1810016FAE5 /* sleepTests */,
+				AC01DA032F68C1800016FAE5 /* sleepWatch */,
 				4C00DA2E2F68C1810016FAE5 /* sleepUITests */,
 			);
 		};
@@ -231,6 +300,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		4C00DA2D2F68C1810016FAE5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AC01DA062F68C1800016FAE5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -261,6 +337,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AC01DA042F68C1800016FAE5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -273,6 +356,11 @@
 			isa = PBXTargetDependency;
 			target = 4C00DA172F68C1800016FAE5 /* sleep */;
 			targetProxy = 4C00DA302F68C1810016FAE5 /* PBXContainerItemProxy */;
+		};
+		AC01DA0B2F68C1800016FAE5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AC01DA032F68C1800016FAE5 /* sleepWatch */;
+			targetProxy = AC01DA0A2F68C1800016FAE5 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -558,6 +646,74 @@
 			};
 			name = Release;
 		};
+		AC01DA072F68C1800016FAE5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = sleepWatch/sleepWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = D34W82FD5N;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Slumberscope;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Slumberscope reads your heart rate during sleep to provide accurate sleep analysis.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Slumberscope records workout sessions to enable background heart rate monitoring.";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "smarter-pillow.sleep";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleep.watchkitapp";
+				PRODUCT_NAME = sleepWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		AC01DA082F68C1800016FAE5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = sleepWatch/sleepWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = D34W82FD5N;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Slumberscope;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Slumberscope reads your heart rate during sleep to provide accurate sleep analysis.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Slumberscope records workout sessions to enable background heart rate monitoring.";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "smarter-pillow.sleep";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleep.watchkitapp";
+				PRODUCT_NAME = sleepWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -593,6 +749,15 @@
 			buildConfigurations = (
 				4C00DA402F68C1810016FAE5 /* Debug */,
 				4C00DA412F68C1810016FAE5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AC01DA092F68C1800016FAE5 /* Build configuration list for PBXNativeTarget "sleepWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC01DA072F68C1800016FAE5 /* Debug */,
+				AC01DA082F68C1800016FAE5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
