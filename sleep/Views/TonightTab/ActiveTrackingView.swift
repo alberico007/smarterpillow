@@ -5,6 +5,7 @@
 //  Created by Michael Berinshteyn on 3/17/26.
 //
 
+import os
 import SwiftUI
 
 struct ActiveTrackingView: View {
@@ -12,7 +13,9 @@ struct ActiveTrackingView: View {
     @Environment(SleepTrackingService.self) private var trackingService
     @Environment(SoundService.self) private var soundService
     @Environment(SleepSettings.self) private var settings
+    @Environment(MediaPlaybackService.self) private var mediaService
     @State private var showingSoundPicker = false
+    @State private var showingFactorLog = false
     @State private var soundTimerMinutes: Int = 30
 
     private var batteryService: BatteryService {
@@ -37,6 +40,15 @@ struct ActiveTrackingView: View {
                     // Battery warning
                     if batteryService.warningLevel != .normal {
                         BatteryWarningBanner(warningLevel: batteryService.warningLevel)
+                    }
+
+                    // Now playing (Apple Music / Podcast from GetReadyForBed)
+                    if let np = mediaService.nowPlaying, np.source != .sound {
+                        NowPlayingBar(
+                            info: np,
+                            timerRemaining: mediaService.timerRemaining,
+                            onStop: { mediaService.stop() }
+                        )
                     }
 
                     // Sleep sounds player
@@ -97,8 +109,45 @@ struct ActiveTrackingView: View {
                         }
                     }
 
+                    // Data source indicator
+                    if trackingService.isUsingWatchMotion {
+                        HStack(spacing: 6) {
+                            Image(systemName: "applewatch")
+                                .foregroundStyle(.cyan)
+                            Text("Watch is tracking motion & heart rate")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal)
+                    }
+
+                    // Log factor — lets the user jot down caffeine, migraine,
+                    // stress, etc. while already in bed and tracking.
+                    Button {
+                        showingFactorLog = true
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "cup.and.saucer.fill")
+                                .foregroundStyle(.brown)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Log a factor")
+                                    .font(.subheadline).fontWeight(.semibold)
+                                Text("Caffeine, migraine, alcohol, stress, etc.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundStyle(.brown)
+                        }
+                        .padding(14)
+                        .background(.regularMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .buttonStyle(.plain)
+
                     // Stop button
                     GlassButton(title: "Wake Up", icon: "stop.fill") {
+                        AppLogger.ui.info("User tapped Wake Up — stopping tracking")
                         soundService.stopAndClear()
                         trackingService.stopTracking()
                     }
@@ -113,6 +162,11 @@ struct ActiveTrackingView: View {
                         .navigationBarTitleDisplayMode(.inline)
                 }
                 .presentationDetents([.medium, .large])
+            }
+            .sheet(isPresented: $showingFactorLog) {
+                NavigationStack {
+                    FactorLoggingView()
+                }
             }
 
             // Smart alarm overlay
@@ -184,6 +238,21 @@ private struct SmartAlarmOverlay: View {
                 Text("Optimal wake-up time detected")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+
+                if let rationale = trackingService.smartAlarmService.latestRationale {
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .foregroundStyle(.purple)
+                        Text(rationale)
+                            .font(.caption)
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.leading)
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(Color.purple.opacity(0.25))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .padding(.horizontal, 24)
+                }
 
                 HStack(spacing: 20) {
                     Button {
@@ -337,5 +406,115 @@ private struct SleepSoundBar: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - NowPlayingBar (Apple Music / Podcast from GetReadyForBed)
+
+private struct NowPlayingBar: View {
+
+    let info: NowPlayingInfo
+    let timerRemaining: TimeInterval
+    let onStop: () -> Void
+
+    var body: some View {
+        GlassCard {
+            HStack(spacing: 12) {
+                ZStack {
+                    if let url = info.artworkURL {
+                        AsyncImage(url: url) { img in
+                            img.resizable().aspectRatio(contentMode: .fill)
+                        } placeholder: {
+                            sourcePlaceholder
+                        }
+                        .frame(width: 56, height: 56)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    } else {
+                        sourcePlaceholder
+                            .frame(width: 56, height: 56)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Image(systemName: sourceIcon)
+                            .font(.caption2)
+                            .foregroundStyle(sourceColor)
+                        Text(sourceLabel)
+                            .font(.caption2)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(sourceColor)
+                    }
+                    Text(info.title)
+                        .font(.subheadline).fontWeight(.semibold)
+                        .lineLimit(1)
+                    Text(info.subtitle)
+                        .font(.caption).foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 4) {
+                    if timerRemaining > 0 {
+                        Text(formatTimer(timerRemaining))
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                    }
+                    Button(action: onStop) {
+                        Image(systemName: "stop.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.cyan)
+                    }
+                }
+            }
+        }
+    }
+
+    private var sourceIcon: String {
+        switch info.source {
+        case .appleMusic: return "music.note"
+        case .podcast: return "waveform.badge.mic"
+        case .sound: return "speaker.wave.2.fill"
+        }
+    }
+
+    private var sourceColor: Color {
+        switch info.source {
+        case .appleMusic: return .red
+        case .podcast: return .purple
+        case .sound: return .cyan
+        }
+    }
+
+    private var sourceLabel: String {
+        switch info.source {
+        case .appleMusic: return "APPLE MUSIC"
+        case .podcast: return "PODCAST"
+        case .sound: return "SLEEP SOUND"
+        }
+    }
+
+    private var sourcePlaceholder: some View {
+        LinearGradient(
+            colors: [sourceColor.opacity(0.7), sourceColor.opacity(0.3)],
+            startPoint: .topLeading, endPoint: .bottomTrailing
+        )
+        .overlay {
+            Image(systemName: sourceIcon)
+                .foregroundStyle(.white)
+                .font(.title3)
+        }
+    }
+
+    private func formatTimer(_ seconds: TimeInterval) -> String {
+        let total = Int(seconds)
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        let s = total % 60
+        return h > 0
+            ? String(format: "%d:%02d:%02d", h, m, s)
+            : String(format: "%02d:%02d", m, s)
     }
 }

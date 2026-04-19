@@ -56,8 +56,9 @@ final class WeatherService: NSObject {
             let raw = try await WeatherService.shared.weather(for: location)
 
             // Reverse geocode for city name
-            let placemark = try? await CLGeocoder().reverseGeocodeLocation(location).first
-            let city = placemark?.locality ?? placemark?.administrativeArea ?? "Your Location"
+            let geocodeRequest = MKReverseGeocodingRequest(location: location)
+            let mapItem = try? await geocodeRequest?.mapItems.first
+            let city = mapItem?.address?.shortAddress ?? mapItem?.address?.fullAddress ?? "Your Location"
 
             let formatter = MeasurementFormatter()
             formatter.unitOptions = .providedUnit

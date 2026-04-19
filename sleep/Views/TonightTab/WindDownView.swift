@@ -89,22 +89,22 @@ struct WindDownView: View {
                     }
                 }
 
-                // Guided Meditations
+                // Guided Meditations — TTS-backed, 5 options
                 GlassCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Label("Meditations", systemImage: "brain.head.profile.fill")
-                                .font(.headline)
-                            Spacer()
-                            Image(systemName: "crown.fill")
-                                .font(.caption)
-                                .foregroundStyle(.orange)
-                        }
+                        Label("Meditations", systemImage: "brain.head.profile.fill")
+                            .font(.headline)
 
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
-                                ForEach(SoundLibrary.meditation().prefix(8)) { item in
-                                    SoundChip(sound: item)
+                                ForEach(SoundLibrary.meditation()) { item in
+                                    SoundChip(sound: item, isPlaying: soundService.activeSlots.contains(where: { $0.sound.id == item.id })) {
+                                        if soundService.activeSlots.contains(where: { $0.sound.id == item.id }) {
+                                            soundService.removeSound(id: item.id)
+                                        } else {
+                                            soundService.addSound(item)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -115,22 +115,22 @@ struct WindDownView: View {
                     }
                 }
 
-                // Sleep Stories
+                // Sleep Stories — TTS-backed, 5 options
                 GlassCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Label("Sleep Stories", systemImage: "book.fill")
-                                .font(.headline)
-                            Spacer()
-                            Image(systemName: "crown.fill")
-                                .font(.caption)
-                                .foregroundStyle(.orange)
-                        }
+                        Label("Sleep Stories", systemImage: "book.fill")
+                            .font(.headline)
 
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
-                                ForEach(SoundLibrary.stories().prefix(8)) { item in
-                                    SoundChip(sound: item)
+                                ForEach(SoundLibrary.stories()) { item in
+                                    SoundChip(sound: item, isPlaying: soundService.activeSlots.contains(where: { $0.sound.id == item.id })) {
+                                        if soundService.activeSlots.contains(where: { $0.sound.id == item.id }) {
+                                            soundService.removeSound(id: item.id)
+                                        } else {
+                                            soundService.addSound(item)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -187,10 +187,18 @@ struct WindDownView: View {
                     }
                 }
 
-                // Start tracking button
-                GlassButton(title: "Start Sleep Tracking", icon: "play.fill") {
-                    trackingService.startTracking()
+                // Tracking starts from the Home tab via the "Get Ready for
+                // Bed" card. Explain that here instead of a duplicate button.
+                HStack(spacing: 10) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(.cyan)
+                    Text("When you're ready, tap **Get Ready for Bed** on the Home tab to start tracking.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
+                .padding(12)
+                .background(.regularMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 Spacer(minLength: 40)
             }

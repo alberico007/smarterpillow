@@ -69,6 +69,11 @@ final class SmartAlarmService {
     var gradualWakeProgress: Double = 0 // 0.0 to 1.0
     var selectedSound: AlarmSound = .gentle
 
+    /// Human-readable reason for why the alarm fired when it did. Populated by
+    /// IntelligenceService when the alarm triggers, or a rule-based fallback.
+    /// Shown on SmartAlarmOverlay below the title.
+    var latestRationale: String?
+
     // MARK: - Private
 
     private var alarmTime: Date?
@@ -89,13 +94,14 @@ final class SmartAlarmService {
 
     // MARK: - Monitoring
 
-    func startMonitoring(motionService: MotionService, notificationService: NotificationService) {
+    func startMonitoring(motionService: MotionService, notificationService: NotificationService, healthKitService: HealthKitService? = nil, intelligenceService: IntelligenceService? = nil) {
         guard alarmEnabled, alarmTime != nil else { return }
         isMonitoring = true
         alarmTriggered = false
         snoozedUntil = nil
+        AppLogger.alarm.info("⏰ Smart alarm monitoring started — target: \(String(describing: self.alarmTime)), window: \(self.windowMinutes)m")
 
-        monitoringTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+        monitoringTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self, weak healthKitService] _ in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 guard !self.alarmTriggered else { return }
@@ -107,10 +113,46 @@ final class SmartAlarmService {
 
                 guard self.isInAlarmWindow() else { return }
 
-                // Check if user is in light sleep (movement > threshold)
+                // Prefer Apple Watch stage data when the user is wearing one.
+                // If the last 2-minute window has any Core/REM/Awake sample,
+                // that's the cleanest possible light-sleep signal.
+                if let hk = healthKitService {
+                    let recentStart = Date().addingTimeInterval(-120)
+                    let recentStages = await hk.fetchAppleWatchStages(from: recentStart, to: Date())
+                    let latest = recentStages.last
+                    switch latest?.stage {
+                    case .light, .awake, .rem:
+                        AppLogger.alarm.info("⏰ Triggering — Apple Watch reports \(latest!.stage.rawValue) stage")
+                        let minsEarly = self.minutesEarlyVsLatest()
+                        await self.computeAndStoreRationale(
+                            stage: latest!.stage.rawValue,
+                            minsEarly: minsEarly,
+                            intelligenceService: intelligenceService
+                        )
+                        self.triggerAlarm()
+                        notificationService.sendAlarmNotification()
+                        return
+                    case .deep:
+                        AppLogger.alarm.debug("⏰ Holding — Watch reports deep sleep")
+                        return
+                    default:
+                        break // no Watch data yet — fall through to motion
+                    }
+                }
+
+                // Fallback: iPhone motion intensity as light-sleep proxy.
                 if motionService.currentIntensity > 0.08 {
+                    AppLogger.alarm.info("⏰ Triggering — motion intensity \(motionService.currentIntensity)")
+                    let minsEarly = self.minutesEarlyVsLatest()
+                    await self.computeAndStoreRationale(
+                        stage: "light",
+                        minsEarly: minsEarly,
+                        intelligenceService: intelligenceService
+                    )
                     self.triggerAlarm()
                     notificationService.sendAlarmNotification()
+                } else {
+                    AppLogger.alarm.debug("⏰ Holding — motion \(motionService.currentIntensity) below threshold")
                 }
             }
         }
@@ -164,9 +206,9 @@ final class SmartAlarmService {
         let totalSteps = durationMinutes * 60 / 5 // update every 5 seconds
         var step = 0
 
-        gradualWakeTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] timer in
+        gradualWakeTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
-                guard let self = self else { timer.invalidate(); return }
+                guard let self = self else { return }
                 step += 1
                 self.gradualWakeProgress = min(Double(step) / Double(max(totalSteps, 1)), 1.0)
 
@@ -176,7 +218,8 @@ final class SmartAlarmService {
                 }
 
                 if self.gradualWakeProgress >= 1.0 {
-                    timer.invalidate()
+                    self.gradualWakeTimer?.invalidate()
+                    self.gradualWakeTimer = nil
                     self.isGradualWakeActive = false
                     // Full alarm now
                     self.triggerFullAlarm()
@@ -215,6 +258,37 @@ final class SmartAlarmService {
         alarmRepeatTimer?.invalidate()
         alarmRepeatTimer = nil
         isMonitoring = false
+    }
+
+    // MARK: - Rationale
+
+    private func minutesEarlyVsLatest() -> Int {
+        guard let alarmTime else { return 0 }
+        let calendar = Calendar.current
+        let now = Date()
+        let components = calendar.dateComponents([.hour, .minute], from: alarmTime)
+        guard let latest = calendar.date(
+            bySettingHour: components.hour ?? 7,
+            minute: components.minute ?? 0,
+            second: 0,
+            of: now
+        ) else { return 0 }
+        return max(0, Int(latest.timeIntervalSince(now) / 60))
+    }
+
+    private func computeAndStoreRationale(stage: String, minsEarly: Int, intelligenceService: IntelligenceService?) async {
+        if let intelligenceService {
+            if let ai = await intelligenceService.generateAlarmRationale(stage: stage, minutesEarlyVsLatest: minsEarly) {
+                await MainActor.run { self.latestRationale = ai }
+                AppLogger.alarm.info("⏰ AI rationale: \(ai)")
+                return
+            }
+        }
+        let fallback = minsEarly <= 0
+            ? "Woke you at your latest alarm — you hadn't hit a light stage yet."
+            : "Woke you \(minsEarly) min early during a \(stage) stage for an easier wake-up."
+        await MainActor.run { self.latestRationale = fallback }
+        AppLogger.alarm.info("⏰ Rationale: \(fallback)")
     }
 
     // MARK: - Private

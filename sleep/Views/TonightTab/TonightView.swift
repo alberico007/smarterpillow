@@ -5,6 +5,7 @@
 //  Created by Michael Berinshteyn on 3/17/26.
 //
 
+import os
 import SwiftUI
 
 // MARK: - TonightView (Track Tab)
@@ -53,11 +54,13 @@ struct TonightView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .startTrackingIntent)) { _ in
+            AppLogger.ui.info("Received startTrackingIntent — phase: \(String(describing: trackingService.phase))")
             if trackingService.phase == .idle {
                 trackingService.startTracking()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .stopTrackingIntent)) { _ in
+            AppLogger.ui.info("Received stopTrackingIntent — phase: \(String(describing: trackingService.phase))")
             if trackingService.phase == .tracking {
                 trackingService.stopTracking()
             }

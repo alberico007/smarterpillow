@@ -47,12 +47,9 @@ final class SleepFocusService {
     func requestAuthorization() async {
         let center = INFocusStatusCenter.default
 
-        center.requestAuthorization { [weak self] status in
-            Task { @MainActor [weak self] in
-                self?.authorizationStatus = status
-                self?.checkFocusStatus()
-            }
-        }
+        let status = await center.requestAuthorization()
+        self.authorizationStatus = status
+        self.checkFocusStatus()
     }
 
     // MARK: - Enable Sleep Focus

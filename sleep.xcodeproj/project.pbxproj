@@ -8,10 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		06E3957E54A45E3507B6CA2F /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 8BFC7BB473584B490F2A5684 /* FirebaseFirestore */; };
-		D1911F3D13DFDDEA09DB5F88 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 1F95F2D99F5E0C0C8819AC62 /* FirebaseAuth */; };
 		AC01DA0E2F68C1800016FAE5 /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AC01DA0C2F68C1800016FAE5 /* WatchConnectivity.framework */; };
 		AC01DA0F2F68C1800016FAE5 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AC01DA0D2F68C1800016FAE5 /* HealthKit.framework */; };
 		AC01DA112F68C1800016FAE5 /* sleepWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = AC01DA012F68C1800016FAE5 /* sleepWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D1911F3D13DFDDEA09DB5F88 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 1F95F2D99F5E0C0C8819AC62 /* FirebaseAuth */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -128,6 +128,7 @@
 				4C00DA322F68C1810016FAE5 /* sleepUITests */,
 				AC01DA022F68C1800016FAE5 /* sleepWatch */,
 				4C00DA192F68C1800016FAE5 /* Products */,
+				4C55BF4A2F7C81370089EA46 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -140,6 +141,15 @@
 				AC01DA012F68C1800016FAE5 /* sleepWatch.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		4C55BF4A2F7C81370089EA46 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				AC01DA0C2F68C1800016FAE5 /* WatchConnectivity.framework */,
+				AC01DA0D2F68C1800016FAE5 /* HealthKit.framework */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -490,22 +500,27 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = sleep/sleep.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
-				DEVELOPMENT_TEAM = 87VJQPM2UT;
+				CURRENT_PROJECT_VERSION = 39;
+				DEVELOPMENT_TEAM = D34W82FD5N;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Slumberscope;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Slumberscope plays your chosen Apple Music songs and playlists as you fall asleep.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Slumberscope uses HealthKit to read your sleep data and provide better insights.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Slumberscope saves your sleep sessions to Apple Health so you can track your rest alongside other health data.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Slumberscope uses your location to show the weather when you wake up.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Slumberscope uses the microphone to detect snoring patterns while you sleep.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Slumberscope uses motion sensors to track your movement and detect sleep stages.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIBackgroundModes = "audio processing";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -513,6 +528,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleep";
 				PRODUCT_NAME = Slumberscope;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -529,22 +545,27 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = sleep/sleep.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
-				DEVELOPMENT_TEAM = 87VJQPM2UT;
+				CURRENT_PROJECT_VERSION = 39;
+				DEVELOPMENT_TEAM = D34W82FD5N;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Slumberscope;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Slumberscope plays your chosen Apple Music songs and playlists as you fall asleep.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Slumberscope uses HealthKit to read your sleep data and provide better insights.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Slumberscope saves your sleep sessions to Apple Health so you can track your rest alongside other health data.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Slumberscope uses your location to show the weather when you wake up.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Slumberscope uses the microphone to detect snoring patterns while you sleep.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Slumberscope uses motion sensors to track your movement and detect sleep stages.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIBackgroundModes = "audio processing";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -552,6 +573,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleep";
 				PRODUCT_NAME = Slumberscope;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -567,12 +589,12 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 39;
 				DEVELOPMENT_TEAM = D34W82FD5N;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleepTests";
+				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleep.tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -589,12 +611,12 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 39;
 				DEVELOPMENT_TEAM = D34W82FD5N;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleepTests";
+				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleep.tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -610,11 +632,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 39;
 				DEVELOPMENT_TEAM = D34W82FD5N;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleepUITests";
+				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleep.uitests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -630,11 +652,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 39;
 				DEVELOPMENT_TEAM = D34W82FD5N;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleepUITests";
+				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleep.uitests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -652,7 +674,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = sleepWatch/sleepWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 39;
 				DEVELOPMENT_TEAM = D34W82FD5N;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Slumberscope;
@@ -664,7 +686,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleep.watchkitapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleep.watch";
 				PRODUCT_NAME = sleepWatch;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -685,7 +707,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = sleepWatch/sleepWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 39;
 				DEVELOPMENT_TEAM = D34W82FD5N;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Slumberscope;
@@ -697,12 +719,13 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleep.watchkitapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "smarter-pillow.sleep.watch";
 				PRODUCT_NAME = sleepWatch;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
@@ -710,7 +733,6 @@
 				TARGETED_DEVICE_FAMILY = 4;
 				VALIDATE_PRODUCT = YES;
 				WATCHOS_DEPLOYMENT_TARGET = 10.0;
-				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
 		};

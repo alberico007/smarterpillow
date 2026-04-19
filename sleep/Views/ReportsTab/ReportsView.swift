@@ -35,6 +35,7 @@ enum ReportsTab: String, CaseIterable, Identifiable {
     case factors = "Factors"
     case recordings = "Recordings"
     case history = "History"
+    case chat = "Ask AI"
 
     var id: String { rawValue }
 }
@@ -50,6 +51,7 @@ struct ReportsView: View {
     private var allFactors: [SleepFactor]
 
     @Environment(SleepSettings.self) private var settings
+    @Environment(IntelligenceService.self) private var intelligenceService
     @Environment(\.modelContext) private var modelContext
 
     @State private var selectedTab: ReportsTab = .trends
@@ -58,6 +60,15 @@ struct ReportsView: View {
     @State private var storeKitService = StoreKitService()
     @State private var showingPDFExport = false
     @State private var showingCSVExport = false
+
+    // Weekly narrative
+    @State private var weeklyNarrative: String? = nil
+    @State private var isGeneratingNarrative = false
+
+    // Chat with sleep
+    @State private var chatInput: String = ""
+    @State private var chatMessages: [ChatMessage] = []
+    @State private var isChatAnswering = false
 
     private var filteredSessions: [SleepSession] {
         let cutoff = Calendar.current.date(byAdding: .day, value: -selectedPeriod.days, to: .now) ?? .now
@@ -107,6 +118,8 @@ struct ReportsView: View {
                                 recordingsContent
                             case .history:
                                 historyContent
+                            case .chat:
+                                chatContent
                             }
                         }
                         .padding()
@@ -148,6 +161,8 @@ struct ReportsView: View {
         if filteredSessions.isEmpty {
             ContentUnavailableView("No Data", systemImage: "chart.line.uptrend.xyaxis", description: Text("Track sleep to see trends."))
         } else {
+            weeklyNarrativeCard
+
             // Average score
             if settings.showSleepScore {
                 let avgScore = filteredSessions.map(\.sleepScore).reduce(0, +) / filteredSessions.count
@@ -185,59 +200,229 @@ struct ReportsView: View {
             }
 
             // Score trend
-            GlassCard {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Sleep Score Trend")
-                        .font(.headline)
-                    Chart(filteredSessions.reversed()) { session in
-                        LineMark(
-                            x: .value("Date", session.startTime, unit: .day),
-                            y: .value("Score", session.sleepScore)
-                        )
-                        .foregroundStyle(.cyan)
-                        .lineStyle(StrokeStyle(lineWidth: 2))
+            InfoFlipCard(
+                title: "Sleep Score Trend",
+                explanation: "This chart plots your overall Sleep Score for every night in the selected range. Each score is calculated out of 100 points and combines four signals: time slept (up to 35 points, best at 7 to 9 hours), the star rating you gave your morning review (up to 30 points), how still you were during the night (up to 20 points from motion data), and how few snoring events were detected (up to 15 points). A rising line usually means your routine is paying off."
+            ) {
+                Chart(filteredSessions.reversed()) { session in
+                    LineMark(
+                        x: .value("Date", session.startTime, unit: .day),
+                        y: .value("Score", session.sleepScore)
+                    )
+                    .foregroundStyle(.cyan)
+                    .lineStyle(StrokeStyle(lineWidth: 2))
 
-                        PointMark(
-                            x: .value("Date", session.startTime, unit: .day),
-                            y: .value("Score", session.sleepScore)
-                        )
-                        .foregroundStyle(.cyan)
-                        .symbolSize(30)
-                    }
-                    .chartYScale(domain: 0...100)
-                    .frame(height: 180)
+                    PointMark(
+                        x: .value("Date", session.startTime, unit: .day),
+                        y: .value("Score", session.sleepScore)
+                    )
+                    .foregroundStyle(.cyan)
+                    .symbolSize(30)
                 }
+                .chartYScale(domain: 0...100)
+                .frame(height: 180)
             }
 
             // Duration trend
-            GlassCard {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Duration Trend")
-                        .font(.headline)
-                    DurationTrendChart(sessions: filteredSessions.reversed())
-                        .frame(height: 180)
-                }
+            InfoFlipCard(
+                title: "Duration Trend",
+                explanation: "This bar chart shows how long you slept each night. The target range for most adults is 7 to 9 hours. The vertical axis adapts to your longest night so short naps or test runs are still readable in 15 or 30 minute increments, while a regular full night shows clean whole hour ticks."
+            ) {
+                DurationTrendChart(sessions: filteredSessions.reversed())
+                    .frame(height: 180)
             }
 
             // Bedtime consistency
-            GlassCard {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Bedtime Consistency")
-                        .font(.headline)
-                    Chart(filteredSessions.reversed()) { session in
-                        let hour = Calendar.current.component(.hour, from: session.startTime)
-                        let minute = Calendar.current.component(.minute, from: session.startTime)
-                        let timeValue = Double(hour) + Double(minute) / 60.0
-                        PointMark(
-                            x: .value("Date", session.startTime, unit: .day),
-                            y: .value("Bedtime", timeValue)
-                        )
+            InfoFlipCard(
+                title: "Bedtime Consistency",
+                explanation: "Each dot is the hour of the night you started tracking. A tight cluster means you are going to bed around the same time every night, which research links to better sleep quality. A scattered plot means your schedule is irregular, which can make it harder to fall asleep and wake up refreshed."
+            ) {
+                Chart(filteredSessions.reversed()) { session in
+                    let hour = Calendar.current.component(.hour, from: session.startTime)
+                    let minute = Calendar.current.component(.minute, from: session.startTime)
+                    let timeValue = Double(hour) + Double(minute) / 60.0
+                    PointMark(
+                        x: .value("Date", session.startTime, unit: .day),
+                        y: .value("Bedtime", timeValue)
+                    )
+                    .foregroundStyle(.indigo)
+                    .symbolSize(40)
+                }
+                .frame(height: 150)
+            }
+        }
+    }
+
+    // MARK: - Weekly Narrative
+
+    @ViewBuilder
+    private var weeklyNarrativeCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: "text.book.closed.fill")
                         .foregroundStyle(.indigo)
-                        .symbolSize(40)
+                    Text("This Week's Story")
+                        .font(.headline)
+                    Spacer()
+                    if intelligenceService.isAvailable {
+                        Text("Apple Intelligence")
+                            .font(.caption2).foregroundStyle(.secondary)
                     }
-                    .frame(height: 150)
+                    Button {
+                        Task { await generateNarrative() }
+                    } label: {
+                        Image(systemName: isGeneratingNarrative ? "hourglass" : "arrow.clockwise")
+                            .font(.caption)
+                    }
+                    .disabled(isGeneratingNarrative)
+                }
+
+                if isGeneratingNarrative {
+                    HStack(spacing: 8) {
+                        ProgressView().scaleEffect(0.7)
+                        Text("Writing your week…").font(.caption).foregroundStyle(.secondary)
+                    }
+                } else if let text = weeklyNarrative {
+                    Text(text)
+                        .font(.subheadline)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("Tap to generate a short narrative about this week's sleep patterns.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button("Generate") {
+                        Task { await generateNarrative() }
+                    }
+                    .font(.caption).fontWeight(.semibold)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(Color.indigo.opacity(0.15))
+                    .foregroundStyle(.indigo)
+                    .clipShape(Capsule())
                 }
             }
+        }
+    }
+
+    @MainActor
+    private func generateNarrative() async {
+        isGeneratingNarrative = true
+        defer { isGeneratingNarrative = false }
+        weeklyNarrative = await intelligenceService.generateWeeklyNarrative(sessions: filteredSessions)
+    }
+
+    // MARK: - Chat with Sleep
+
+    struct ChatMessage: Identifiable {
+        let id = UUID()
+        let isUser: Bool
+        let text: String
+    }
+
+    @ViewBuilder
+    private var chatContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            GlassCard {
+                HStack(spacing: 10) {
+                    Image(systemName: "bubble.left.and.text.bubble.right.fill")
+                        .foregroundStyle(.purple)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Ask your sleep").font(.headline)
+                        Text(intelligenceService.isAvailable
+                             ? "Apple Intelligence answers questions using your own \(allSessions.count) nights of data. On-device, private."
+                             : "Requires an Apple Intelligence-capable iPhone. Basic answers still work from your data.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            if allSessions.isEmpty {
+                GlassCard {
+                    HStack(spacing: 10) {
+                        Image(systemName: "bed.double.fill").foregroundStyle(.secondary)
+                        Text("Track at least one night to unlock chat answers.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            } else if chatMessages.isEmpty {
+                exampleChips
+            }
+
+            ForEach(chatMessages) { msg in
+                HStack {
+                    if msg.isUser { Spacer() }
+                    Text(msg.text)
+                        .font(.subheadline)
+                        .padding(10)
+                        .background(msg.isUser ? Color.cyan.opacity(0.18) : Color.secondary.opacity(0.1))
+                        .foregroundStyle(msg.isUser ? .cyan : .primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .frame(maxWidth: 340, alignment: msg.isUser ? .trailing : .leading)
+                    if !msg.isUser { Spacer() }
+                }
+            }
+
+            if isChatAnswering {
+                HStack(spacing: 8) {
+                    ProgressView().scaleEffect(0.7)
+                    Text("Thinking…").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+
+            HStack {
+                TextField("Ask anything about your sleep", text: $chatInput, axis: .vertical)
+                    .lineLimit(1...3)
+                    .padding(10)
+                    .background(Color.secondary.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                Button {
+                    Task { await sendChat() }
+                } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(chatInput.trimmingCharacters(in: .whitespaces).isEmpty ? Color.secondary : Color.cyan)
+                }
+                .disabled(chatInput.trimmingCharacters(in: .whitespaces).isEmpty || isChatAnswering)
+            }
+        }
+    }
+
+    private var exampleChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(chatExamples, id: \.self) { q in
+                    Button(q) {
+                        chatInput = q
+                        Task { await sendChat() }
+                    }
+                    .font(.caption).fontWeight(.semibold)
+                    .padding(.horizontal, 10).padding(.vertical, 6)
+                    .background(Color.cyan.opacity(0.15))
+                    .foregroundStyle(.cyan)
+                    .clipShape(Capsule())
+                }
+            }
+        }
+    }
+
+    private var chatExamples: [String] {
+        ["Why did I sleep worse last night?",
+         "What's my best night this week?",
+         "Am I getting enough REM?",
+         "What factor hurts me most?"]
+    }
+
+    @MainActor
+    private func sendChat() async {
+        let trimmed = chatInput.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        chatMessages.append(ChatMessage(isUser: true, text: trimmed))
+        chatInput = ""
+        isChatAnswering = true
+        defer { isChatAnswering = false }
+        if let reply = await intelligenceService.answerQuestion(trimmed, sessions: allSessions) {
+            chatMessages.append(ChatMessage(isUser: false, text: reply))
+        } else {
+            chatMessages.append(ChatMessage(isUser: false, text: "Couldn't generate an answer. Try a different question."))
         }
     }
 

@@ -14,6 +14,10 @@ extension Notification.Name {
     static let startTrackingIntent = Notification.Name("com.slumberscope.startTrackingIntent")
     static let stopTrackingIntent = Notification.Name("com.slumberscope.stopTrackingIntent")
     static let playRainSoundsIntent = Notification.Name("com.slumberscope.playRainSoundsIntent")
+    static let watchMorningSummary = Notification.Name("com.slumberscope.watchMorningSummary")
+    static let watchMovementData = Notification.Name("com.slumberscope.watchMovementData")
+    static let watchSnoringCountUpdate = Notification.Name("com.slumberscope.watchSnoringCountUpdate")
+    static let watchReachabilityChanged = Notification.Name("com.slumberscope.watchReachabilityChanged")
 }
 
 // MARK: - StartSleepTrackingIntent

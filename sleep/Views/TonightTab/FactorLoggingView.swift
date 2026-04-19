@@ -5,6 +5,7 @@
 //
 //
 
+import os
 import SwiftData
 import SwiftUI
 
@@ -72,9 +73,11 @@ struct FactorLoggingView: View {
                                 TextField("Custom factor...", text: $customLabel)
                                     .textFieldStyle(.plain)
                                 Button("Add") {
-                                    if !customLabel.isEmpty {
-                                        let factor = SleepFactor(date: Date(), type: .custom, customLabel: customLabel)
+                                    let trimmed = customLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    if !trimmed.isEmpty {
+                                        let factor = SleepFactor(date: Date(), type: .custom, customLabel: trimmed)
                                         modelContext.insert(factor)
+                                        AppLogger.data.info("Added custom sleep factor: \(trimmed)")
                                         customLabel = ""
                                         showCustomField = false
                                     }
@@ -112,6 +115,7 @@ struct FactorLoggingView: View {
     private func saveFactor() {
         // Delete today's existing factors first to avoid duplicates
         let calendar = Calendar.current
+        let existingCount = allFactors.filter { calendar.isDateInToday($0.date) }.count
         for factor in allFactors where calendar.isDateInToday(factor.date) {
             modelContext.delete(factor)
         }
@@ -121,7 +125,12 @@ struct FactorLoggingView: View {
             let entry = SleepFactor(date: Date(), type: factor)
             modelContext.insert(entry)
         }
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+            AppLogger.data.info("Saved \(selectedFactors.count) sleep factors (replaced \(existingCount) existing)")
+        } catch {
+            AppLogger.error("Failed to save sleep factors", error: error)
+        }
     }
 }
 
@@ -154,4 +163,4 @@ private struct FactorChip: View {
         }
         .buttonStyle(.plain)
     }
-
+}

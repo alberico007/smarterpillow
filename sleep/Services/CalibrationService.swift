@@ -62,7 +62,11 @@ final class CalibrationService {
     private var sampleCount: Int = 0
     private var calibrationStartTime: Date?
 
-    private let calibrationDuration: TimeInterval = 20 // 20 seconds
+    /// Matches the 15-second baseline animation shown by GetReadyForBedView
+    /// so calibration finishes exactly when the user can tap Start Tracking.
+    /// If mismatched, SleepTrackingService sees phase != .completed and
+    /// kicks off a second round of calibration.
+    private let calibrationDuration: TimeInterval = 15
     private let sampleInterval: TimeInterval = 0.5
 
     private let baselineKey = "sleep_calibration_baseline"

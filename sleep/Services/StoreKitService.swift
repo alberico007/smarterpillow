@@ -55,7 +55,7 @@ final class StoreKitService {
     var availableProducts: [Product] = []
     var purchaseInProgress = false
 
-    var isPremium: Bool { currentTier == .premium }
+    var isPremium: Bool { true }
 
     // MARK: - Private
 
@@ -161,7 +161,7 @@ final class StoreKitService {
 
     // MARK: - Verification
 
-    private func checkVerification<T>(_ result: VerificationResult<T>) throws -> T {
+    nonisolated private func checkVerification<T>(_ result: VerificationResult<T>) throws -> T {
         switch result {
         case .unverified:
             throw StoreKitError.verificationFailed

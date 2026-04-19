@@ -73,6 +73,12 @@ final class SleepSettings {
         static let userGender = "sleep_userGender"
         static let snoringSensitivity = "sleep_snoringSensitivity"
         static let minimumSnoreDuration = "sleep_minimumSnoreDuration"
+        // Sleep audio + new start-flow keys
+        static let appleMusicEnabled = "sleep_appleMusicEnabled"
+        static let podcastsEnabled = "sleep_podcastsEnabled"
+        static let skipBedIntentConfirmation = "sleep_skipBedIntentConfirmation"
+        static let defaultSleepTimerMinutes = "sleep_defaultSleepTimerMinutes"
+        static let environmentalNoiseFilteringEnabled = "sleep_environmentalNoiseFilteringEnabled"
     }
 
     // MARK: - Properties
@@ -229,6 +235,34 @@ final class SleepSettings {
         didSet { save() }
     }
 
+    // MARK: - Sleep audio + new start-flow
+
+    /// Show the Apple Music tab during the Get Ready for Bed chooser.
+    var appleMusicEnabled: Bool {
+        didSet { save() }
+    }
+
+    /// Show the Podcasts tab during the Get Ready for Bed chooser.
+    var podcastsEnabled: Bool {
+        didSet { save() }
+    }
+
+    /// Skip the "I'm ready to sleep" intent screen before baseline.
+    var skipBedIntentConfirmation: Bool {
+        didSet { save() }
+    }
+
+    /// Default sleep-timer duration (minutes) pre-selected on the chooser.
+    /// 0 means "until I wake up" (no timer).
+    var defaultSleepTimerMinutes: Int {
+        didSet { save() }
+    }
+
+    /// Filter out non-snore sounds (fans, AC, dogs, speech) via SoundAnalysis.
+    var environmentalNoiseFilteringEnabled: Bool {
+        didSet { save() }
+    }
+
     // MARK: - Defaults
 
     private static func defaultTime(hour: Int, minute: Int) -> Date {
@@ -300,7 +334,24 @@ final class SleepSettings {
             let senVal = defaults.object(forKey: Keys.snoringSensitivity) as? Double
             self.snoringSensitivity = senVal ?? 0.5
             let durVal = defaults.object(forKey: Keys.minimumSnoreDuration) as? Double
-            self.minimumSnoreDuration = durVal ?? 0.8
+            // One-time migration: the old default was 0.8s, too long for
+            // many real snores. If the user never touched the slider (value
+            // still equals the old default), bump it down to the new 0.4s
+            // default so they don't need to hunt through Settings.
+            if let stored = durVal, stored == 0.8 {
+                self.minimumSnoreDuration = 0.4
+                defaults.set(0.4, forKey: Keys.minimumSnoreDuration)
+            } else {
+                self.minimumSnoreDuration = durVal ?? 0.4
+            }
+            self.appleMusicEnabled = defaults.bool(forKey: Keys.appleMusicEnabled)
+            self.podcastsEnabled = defaults.bool(forKey: Keys.podcastsEnabled)
+            self.skipBedIntentConfirmation = defaults.bool(forKey: Keys.skipBedIntentConfirmation)
+            let sleepTimerVal = defaults.object(forKey: Keys.defaultSleepTimerMinutes) as? Int
+            self.defaultSleepTimerMinutes = sleepTimerVal ?? 30
+            self.environmentalNoiseFilteringEnabled = defaults.object(forKey: Keys.environmentalNoiseFilteringEnabled) == nil
+                ? true
+                : defaults.bool(forKey: Keys.environmentalNoiseFilteringEnabled)
         } else {
             // First launch — set all defaults
             self.trackMotion = true
@@ -340,7 +391,12 @@ final class SleepSettings {
             self.userAge = 30
             self.userGender = "Not specified"
             self.snoringSensitivity = 0.5
-            self.minimumSnoreDuration = 0.8
+            self.minimumSnoreDuration = 0.4
+            self.appleMusicEnabled = false
+            self.podcastsEnabled = false
+            self.skipBedIntentConfirmation = false
+            self.defaultSleepTimerMinutes = 30
+            self.environmentalNoiseFilteringEnabled = true
         }
     }
 
@@ -386,5 +442,10 @@ final class SleepSettings {
         defaults.set(userGender, forKey: Keys.userGender)
         defaults.set(snoringSensitivity, forKey: Keys.snoringSensitivity)
         defaults.set(minimumSnoreDuration, forKey: Keys.minimumSnoreDuration)
+        defaults.set(appleMusicEnabled, forKey: Keys.appleMusicEnabled)
+        defaults.set(podcastsEnabled, forKey: Keys.podcastsEnabled)
+        defaults.set(skipBedIntentConfirmation, forKey: Keys.skipBedIntentConfirmation)
+        defaults.set(defaultSleepTimerMinutes, forKey: Keys.defaultSleepTimerMinutes)
+        defaults.set(environmentalNoiseFilteringEnabled, forKey: Keys.environmentalNoiseFilteringEnabled)
     }
 }

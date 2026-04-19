@@ -10,11 +10,18 @@ import os
 import UserNotifications
 
 @Observable
-final class NotificationService {
+final class NotificationService: NSObject {
 
     // MARK: - Observable State
 
     var isAuthorized = false
+
+    // MARK: - Init
+
+    override init() {
+        super.init()
+        UNUserNotificationCenter.current().delegate = self
+    }
 
     // MARK: - Request Authorization
 
@@ -32,29 +39,50 @@ final class NotificationService {
     // MARK: - Bedtime Reminder
 
     func scheduleBedtimeReminder(at time: Date, enabled: Bool) {
-        AppLogger.notification.info("🔔 Scheduled bedtime reminder — enabled: \(enabled)")
         let center = UNUserNotificationCenter.current()
         let identifier = "com.sleep.bedtimeReminder"
 
         // Always remove existing
         center.removePendingNotificationRequests(withIdentifiers: [identifier])
 
-        guard enabled else { return }
-
-        let content = UNMutableNotificationContent()
-        content.title = "Bedtime Reminder"
-        content.body = "Time to wind down and get ready for sleep."
-        content.sound = .default
-        content.categoryIdentifier = "BEDTIME_REMINDER"
+        guard enabled else {
+            AppLogger.notification.info("🔔 Bedtime reminder disabled — cleared any pending")
+            return
+        }
 
         let calendar = Calendar.current
         let components = calendar.dateComponents([.hour, .minute], from: time)
+        let hour = components.hour ?? 22
+        let minute = components.minute ?? 30
 
-        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+        // Make sure we actually have permission. If the user denied earlier
+        // we silently couldn't schedule; now we prompt once and bail out if
+        // still not granted so the UI can reflect that.
+        Task {
+            let settings = await center.notificationSettings()
+            if settings.authorizationStatus == .notDetermined {
+                _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
+            }
+            let latest = await center.notificationSettings()
+            guard latest.authorizationStatus == .authorized || latest.authorizationStatus == .provisional else {
+                AppLogger.notification.error("🔔 Can't schedule bedtime reminder — notifications not authorized (status: \(latest.authorizationStatus.rawValue))")
+                await MainActor.run { self.isAuthorized = false }
+                return
+            }
+            await MainActor.run { self.isAuthorized = true }
 
-        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
-        center.add(request) { error in
-            if let error = error {
+            let content = UNMutableNotificationContent()
+            content.title = "Bedtime Reminder"
+            content.body = "Time to wind down and get ready for sleep."
+            content.sound = .default
+            content.categoryIdentifier = "BEDTIME_REMINDER"
+
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+            do {
+                try await center.add(request)
+                AppLogger.notification.info("🔔 Scheduled bedtime reminder — fires daily at \(String(format: "%02d:%02d", hour, minute))")
+            } catch {
                 AppLogger.notification.error("Failed to schedule bedtime reminder: \(error.localizedDescription)")
             }
         }
@@ -208,5 +236,20 @@ final class NotificationService {
                 AppLogger.notification.error("Failed to send alarm notification: \(error.localizedDescription)")
             }
         }
+    }
+}
+
+// MARK: - UNUserNotificationCenterDelegate
+
+extension NotificationService: UNUserNotificationCenterDelegate {
+
+    /// Called when a notification fires while the app is in the foreground.
+    /// Without this, iOS silently swallows the notification (no banner, no sound).
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping @Sendable (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound, .list, .badge])
     }
 }

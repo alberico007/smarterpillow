@@ -24,6 +24,7 @@ struct HomeView: View {
 
     @State private var intelligenceService = IntelligenceService()
     @State private var aiTip: String? = nil
+    @State private var showingGetReady = false
 
     private var lastSession: SleepSession? { sessions.first }
 
@@ -52,43 +53,43 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    // Hero: Get Ready for Bed
+                    GetReadyForBedCard(
+                        isTracking: trackingService.phase != .idle,
+                        onTap: {
+                            if trackingService.phase == .idle {
+                                showingGetReady = true
+                            } else {
+                                selectedTab = .track
+                            }
+                        }
+                    )
+
                     if let session = lastSession {
-                        // Sleep Score Ring
                         SleepScoreRingCard(session: session, goalHours: settings.sleepGoalHours)
-
-                        // Last Night Summary
                         LastNightSummaryCard(session: session)
-
-                        // Weekly Snapshot
                         WeeklySnapshotCard(sessions: weekSessions, streak: streak, goalHours: settings.sleepGoalHours)
                     } else {
-                        // Empty state
                         VStack(spacing: 16) {
                             Image(systemName: "moon.zzz.fill")
                                 .font(.system(size: 80))
                                 .foregroundStyle(.cyan)
                                 .symbolEffect(.breathe)
-
                             Text("No Sleep Data Yet")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-
+                                .font(.title2).fontWeight(.semibold)
                             Text("Start your first sleep tracking session to see your dashboard.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .font(.subheadline).foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 40)
                         }
-                        .padding(.top, 60)
+                        .padding(.top, 20)
                     }
 
-                    // AI Coaching Tip
                     if let tip = aiTip {
                         AICoachCard(tip: tip, isAIPowered: intelligenceService.isAvailable)
                     }
 
-                    // Quick Actions
-                    QuickActionsCard(selectedTab: $selectedTab)
+                    ExportReportShortcut(selectedTab: $selectedTab)
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
@@ -100,6 +101,119 @@ struct HomeView: View {
                 )
             }
             .navigationTitle("Home")
+            .fullScreenCover(isPresented: $showingGetReady) {
+                GetReadyForBedView(onTrackingStarted: { selectedTab = .track })
+            }
+        }
+    }
+}
+
+// MARK: - ExportReportShortcut
+
+private struct ExportReportShortcut: View {
+    @Binding var selectedTab: AppTab
+
+    var body: some View {
+        Button {
+            selectedTab = .reports
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "doc.text.fill")
+                    .font(.title2)
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(
+                        LinearGradient(colors: [.indigo, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Sleep Reports")
+                        .font(.headline)
+                    Text("Trends, factors, recordings, history — and export")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.secondary)
+            }
+            .padding(14)
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - GetReadyForBedCard (hero)
+
+private struct GetReadyForBedCard: View {
+    let isTracking: Bool
+    let onTap: () -> Void
+
+    @State private var starOffset: CGFloat = 0
+    @State private var glowOpacity: Double = 0.5
+
+    var body: some View {
+        Button(action: onTap) {
+            ZStack {
+                // Background gradient + floating star accents
+                LinearGradient(
+                    colors: [.indigo.opacity(0.9), .purple.opacity(0.85), .cyan.opacity(0.75)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+
+                ForEach(0..<6, id: \.self) { i in
+                    Image(systemName: "sparkle")
+                        .foregroundStyle(.white.opacity(0.35))
+                        .font(.system(size: CGFloat(8 + (i % 3) * 6)))
+                        .offset(
+                            x: CGFloat([-120, -60, 20, 80, 130, -30][i % 6]),
+                            y: CGFloat([-40, 30, -50, 20, -20, 50][i % 6]) + starOffset
+                        )
+                }
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "moon.stars.fill")
+                            Text(isTracking ? "SLEEP IN PROGRESS" : "TONIGHT")
+                                .kerning(1.2)
+                        }
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white.opacity(0.8))
+
+                        Text(isTracking ? "View tracking" : "Get Ready for Bed")
+                            .font(.system(size: 30, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+
+                        Text(isTracking
+                             ? "Tap to see live sleep data"
+                             : "Start a relaxing wind-down and tracking session")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.title3.bold())
+                        .foregroundStyle(.white.opacity(0.85))
+                }
+                .padding(22)
+            }
+            .frame(height: 180)
+            .shadow(color: .indigo.opacity(glowOpacity), radius: 20, x: 0, y: 8)
+        }
+        .buttonStyle(.plain)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
+                starOffset = 6
+                glowOpacity = 0.9
+            }
         }
     }
 }
@@ -356,11 +470,17 @@ private struct WeeklyDurationBars: View {
             let day = calendar.date(byAdding: .day, value: -offset, to: today)!
             let dayStart = day
             let dayEnd = calendar.date(byAdding: .day, value: 1, to: day)!
-            let daySession = sessions.first {
-                $0.startTime >= dayStart && $0.startTime < dayEnd
+            // A sleep session belongs to the day the user WOKE UP on
+            // (bucket by endTime). Otherwise a session started at 11pm
+            // Friday night that ended Saturday morning would silently
+            // fall into Friday's bar and Saturday would look empty.
+            let daySessions = sessions.filter {
+                $0.endTime >= dayStart && $0.endTime < dayEnd
             }
+            // Sum in case of multiple tracked naps/sleeps on the same day.
+            let totalSeconds = daySessions.reduce(0) { $0 + $1.durationSeconds }
             let label = FormatHelpers.weekday(day)
-            return (label: label, hours: (daySession?.durationSeconds ?? 0) / 3600.0)
+            return (label: label, hours: totalSeconds / 3600.0)
         }
     }
 
@@ -432,69 +552,3 @@ private struct AICoachCard: View {
     }
 }
 
-// MARK: - QuickActionsCard
-
-private struct QuickActionsCard: View {
-
-    @Binding var selectedTab: AppTab
-    @Environment(SleepTrackingService.self) private var trackingService
-    @Environment(\.modelContext) private var modelContext
-    @State private var showingFactorLog = false
-    @State private var showingExport = false
-
-    var body: some View {
-        GlassCard {
-            VStack(spacing: 12) {
-                Text("Quick Actions")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                HStack(spacing: 16) {
-                    QuickActionButton(icon: "play.fill", label: "Start\nTracking", color: .cyan) {
-                        trackingService.startTracking()
-                        selectedTab = .track
-                    }
-                    QuickActionButton(icon: "cup.and.saucer.fill", label: "Log\nFactor", color: .brown) {
-                        showingFactorLog = true
-                    }
-                    QuickActionButton(icon: "doc.text.fill", label: "Export\nReport", color: .indigo) {
-                        selectedTab = .reports
-                    }
-                }
-            }
-        }
-        .sheet(isPresented: $showingFactorLog) {
-            NavigationStack {
-                FactorLoggingView()
-            }
-        }
-    }
-}
-
-private struct QuickActionButton: View {
-    let icon: String
-    let label: String
-    let color: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(color)
-                    .frame(width: 48, height: 48)
-                    .background(color.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                Text(label)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.plain)
-    }
-}

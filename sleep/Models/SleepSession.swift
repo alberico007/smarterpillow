@@ -5,6 +5,7 @@
 //
 
 import Foundation
+import os
 import SwiftData
 import SwiftUI
 
@@ -87,6 +88,11 @@ struct SnoringEvent: Codable, Identifiable, Sendable {
     var duration: TimeInterval
     var averageAmplitude: Double
     var audioFileURL: URL?
+    /// Top label from SoundAnalysis classifier ("snoring", "mechanical_fan", etc.).
+    /// Empty string for legacy events recorded before classification was added.
+    var classification: String = "snoring"
+    /// Confidence (0.0–1.0) of the top classification label.
+    var classificationConfidence: Double = 1.0
 }
 
 // MARK: - SleepStageEntry
@@ -123,6 +129,57 @@ final class SleepSession {
 
     // Sleep onset latency (seconds from session start to first non-awake stage)
     var onsetLatencySeconds: Double
+
+    // MARK: Apple Watch biometrics (nil when no watch data for this window)
+
+    /// Average heart rate (bpm) during the sleep window. Sourced from
+    /// HealthKit if the user wore an Apple Watch.
+    var averageHeartRateBPM: Double?
+
+    /// Minimum heart rate during the sleep window — usually the overnight
+    /// low which is a strong recovery indicator.
+    var minimumHeartRateBPM: Double?
+
+    /// Heart Rate Variability (SDNN, milliseconds). Apple Watch's HRV is
+    /// within ~10 ms of clinical ECG per Apple's 2025 validation study.
+    var hrvAverageMS: Double?
+
+    /// Average respiratory rate (breaths per minute) from Apple Watch.
+    var respiratoryRateBPM: Double?
+
+    /// Blood oxygen saturation (percentage, 0–100). Only populated on
+    /// Watch Series 6+.
+    var bloodOxygenPercent: Double?
+
+    /// Sleeping wrist temperature (Celsius). iOS 17+, Watch Series 8+.
+    var wristTemperatureCelsius: Double?
+
+    /// User's baseline resting heart rate (from HealthKit), for comparing
+    /// overnight low vs the rolling-average resting HR.
+    var restingHeartRateBPM: Double?
+
+    // MARK: Journaling (AI features)
+
+    /// Optional "what did today look like" free-text dictated pre-bed.
+    /// Used by IntelligenceService to auto-extract SleepFactor entries.
+    var dayJournal: String = ""
+
+    /// Optional "what did you dream" free-text captured in Morning Review.
+    /// Used by IntelligenceService to tag dream themes.
+    var dreamJournal: String = ""
+
+    /// Comma-joined dream theme tags from the on-device model. Not loaded
+    /// into SwiftData as an array to keep the schema migration-free.
+    var dreamThemesRaw: String = ""
+
+    /// Human-readable explanation of why the smart alarm triggered when
+    /// it did (e.g. "woke you 9 min early at end of a light cycle").
+    var alarmRationale: String = ""
+
+    var dreamThemes: [String] {
+        get { dreamThemesRaw.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) } }
+        set { dreamThemesRaw = newValue.joined(separator: ", ") }
+    }
 
     var onsetLatencyFormatted: String {
         if onsetLatencySeconds <= 0 { return "N/A" }
@@ -177,36 +234,78 @@ final class SleepSession {
     }
 
     // MARK: Computed - Sleep Score (0-100)
+    //
+    // When Apple Watch data is available (HRV + overnight heart rate drop),
+    // we redistribute points to give 20 to a physiological Recovery component
+    // and shrink Movement to 10 and Snoring to 10. Total still sums to 100.
+    // When no Watch data is available, we fall back to the original 4-component
+    // split (35 + 30 + 20 + 15).
 
     var sleepScore: Int {
         var score: Double = 0
+        let hasRecoveryData = hrvAverageMS != nil || minimumHeartRateBPM != nil
+        let movementWeight: Double = hasRecoveryData ? 10 : 20
+        let snoringWeight: Double = hasRecoveryData ? 10 : 15
+        let recoveryWeight: Double = hasRecoveryData ? 15 : 0
+        var breakdown: [String: Int] = [:]
 
         // Duration component (max 35 points) — ideal 7-9 hours
         let hours = durationSeconds / 3600.0
-        if hours >= 7 && hours <= 9 {
-            score += 35
-        } else if hours >= 6 && hours < 7 {
-            score += 25
-        } else if hours > 9 && hours <= 10 {
-            score += 28
-        } else if hours >= 5 && hours < 6 {
-            score += 15
-        } else {
-            score += max(0, 10 - abs(hours - 8) * 2)
+        let durationPts: Double
+        if hours >= 7 && hours <= 9 { durationPts = 35 }
+        else if hours >= 6 && hours < 7 { durationPts = 25 }
+        else if hours > 9 && hours <= 10 { durationPts = 28 }
+        else if hours >= 5 && hours < 6 { durationPts = 15 }
+        else { durationPts = max(0, 10 - abs(hours - 8) * 2) }
+        score += durationPts
+        breakdown["duration"] = Int(durationPts)
+
+        // Quality component (max 30 points) — the user's morning rating
+        let qualityPts = Double(qualityRating) / 5.0 * 30.0
+        score += qualityPts
+        breakdown["quality"] = Int(qualityPts)
+
+        // Movement component — lower averageMovement is better
+        let movementScore = min(movementWeight, max(0, movementWeight - averageMovement * 40))
+        score += movementScore
+        breakdown["movement"] = Int(movementScore)
+
+        // Snoring component — each event costs proportional points
+        let perEventPenalty = snoringWeight / 5.0 // ~2–3 points per snore
+        let snoringPenalty = min(snoringWeight, Double(snoringCount) * perEventPenalty)
+        let snoringPts = snoringWeight - snoringPenalty
+        score += snoringPts
+        breakdown["snoring"] = Int(snoringPts)
+
+        // Recovery component (HRV + overnight HR drop) — only when Watch data
+        // is available. Research: HRV correlates strongly with recovery; a
+        // well-rested adult commonly sits in the 30–70 ms range. Overnight
+        // HR should drop meaningfully below resting baseline.
+        if hasRecoveryData {
+            var recoveryPoints: Double = 0
+            let hrvMidpoint: Double = 50
+            let hrvSpread: Double = 40
+            if let hrv = hrvAverageMS {
+                let normalized = max(0, min(1, (hrv - (hrvMidpoint - hrvSpread)) / (2 * hrvSpread)))
+                recoveryPoints += normalized * (recoveryWeight * 0.6)
+            }
+            if let minHR = minimumHeartRateBPM, let resting = restingHeartRateBPM, resting > 0 {
+                let drop = max(0, resting - minHR)
+                let normalized = max(0, min(1, drop / 15.0))
+                recoveryPoints += normalized * (recoveryWeight * 0.4)
+            } else if hrvAverageMS != nil {
+                recoveryPoints += recoveryWeight * 0.3
+            }
+            let capped = min(recoveryWeight, recoveryPoints)
+            score += capped
+            breakdown["recovery"] = Int(capped)
         }
 
-        // Quality component (max 30 points)
-        score += Double(qualityRating) / 5.0 * 30.0
-
-        // Movement component (max 20 points) — lower is better
-        let movementScore = max(0, 20 - averageMovement * 40)
-        score += movementScore
-
-        // Snoring component (max 15 points) — fewer is better
-        let snoringPenalty = min(15, Double(snoringCount) * 3)
-        score += 15 - snoringPenalty
-
-        return max(0, min(100, Int(score.rounded())))
+        let final = max(0, min(100, Int(score.rounded())))
+        // One-line breakdown for Xcode debugging — emits on every read of
+        // sleepScore, filter by category `tracking` to see it.
+        AppLogger.tracking.debug("🧮 sleepScore=\(final) breakdown=\(breakdown), hasRecovery=\(hasRecoveryData)")
+        return final
     }
 
     // MARK: Init

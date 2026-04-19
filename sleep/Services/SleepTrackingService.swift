@@ -12,7 +12,7 @@ import WidgetKit
 
 // MARK: - Tracking Phase
 
-enum TrackingPhase: Equatable {
+nonisolated enum TrackingPhase: Equatable, Sendable {
     case idle
     case calibrating
     case tracking
@@ -42,17 +42,41 @@ final class SleepTrackingService {
     let liveActivityService = LiveActivityService()
     let sleepFocusService = SleepFocusService()
 
+    // MARK: - Watch HR Stats
+
+    var watchHRMin: Double = 0
+    var watchHRMax: Double = 0
+    private var watchHRSum: Double = 0
+    private var watchHRCount: Int = 0
+
+    // MARK: - Watch Connectivity
+
+    /// Reference to watch connectivity service — set via configure()
+    weak var watchService: WatchConnectivityService?
+
+    /// Optional Apple Intelligence handle — used by the smart alarm to write
+    /// a human-readable rationale on-device. Set by sleepApp on startup.
+    weak var intelligenceService: IntelligenceService?
+
+    /// Whether the watch is the primary motion data source for this session
+    private(set) var isUsingWatchMotion = false
+
     // MARK: - Private
 
     private var elapsedTimer: Timer?
     private var batteryCheckTimer: Timer?
+    private var calibrationCheckTimer: Timer?
+    private var snoringPushTimer: Timer?
+    private var watchMovementObserver: Any?
+    private var watchDisconnectObserver: Any?
     private var settings: SleepSettings?
 
     // MARK: - Configure
 
-    func configure(settings: SleepSettings) {
+    func configure(settings: SleepSettings, watchService: WatchConnectivityService? = nil) {
         self.settings = settings
-        AppLogger.tracking.info("Configured tracking service with settings")
+        self.watchService = watchService
+        AppLogger.tracking.info("Configured tracking service — watch available: \(watchService != nil)")
 
         calibrationService.loadSavedBaseline()
 
@@ -85,14 +109,29 @@ final class SleepTrackingService {
         startTime = now
         elapsedTime = 0
 
-        guard let settings = settings else { return }
+        guard let settings = settings else {
+            AppLogger.tracking.error("Cannot start tracking — settings not configured")
+            return
+        }
+
+        // Determine motion data source: watch (preferred) or iPhone (fallback)
+        let watchReachable = watchService?.isWatchReachable ?? false
+        isUsingWatchMotion = watchReachable && settings.trackMotion
 
         if settings.trackMotion {
-            motionService.startTracking(sensitivity: settings.sensitivityLevel)
+            if isUsingWatchMotion {
+                AppLogger.tracking.info("⌚ Watch connected — using watch for motion tracking (iPhone accelerometer off)")
+            } else {
+                AppLogger.tracking.info("📱 No watch — using iPhone accelerometer for motion tracking")
+                motionService.startTracking(sensitivity: settings.sensitivityLevel)
+            }
         }
+
+        // Audio/snoring detection always runs on iPhone (watch has no mic for this)
         if settings.trackAudio {
             audioService.configure(sensitivity: settings.snoringSensitivity, minDuration: settings.minimumSnoreDuration)
             audioService.startTracking()
+            AppLogger.tracking.info("🎙️ Audio/snoring detection started on iPhone")
         }
 
         liveActivityService.startLiveActivity(startTime: now)
@@ -108,32 +147,44 @@ final class SleepTrackingService {
             }
         }
 
-        if settings.calibrationEnabled && calibrationService.baseline == 0 {
+        // Skip recalibration if the GetReadyForBed baseline already
+        // completed (phase == .completed) or the user opted out (.skipped).
+        // We previously checked `baseline == 0` which falsely re-triggered
+        // calibration on devices/simulators that legitimately measured 0.
+        let alreadyCalibrated: Bool = {
+            if case .completed = calibrationService.phase { return true }
+            if case .skipped = calibrationService.phase { return true }
+            return false
+        }()
+
+        if settings.calibrationEnabled && !alreadyCalibrated {
             phase = .calibrating
             calibrationService.startCalibration(motionService: motionService, audioService: audioService)
 
-            Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            calibrationCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
                 Task { @MainActor [weak self] in
-                    guard let self = self else {
-                        timer.invalidate()
-                        return
-                    }
+                    guard let self = self else { return }
                     if case .completed = self.calibrationService.phase {
-                        timer.invalidate()
+                        self.calibrationCheckTimer?.invalidate()
+                        self.calibrationCheckTimer = nil
                         self.phase = .tracking
                     } else if case .skipped = self.calibrationService.phase {
-                        timer.invalidate()
+                        self.calibrationCheckTimer?.invalidate()
+                        self.calibrationCheckTimer = nil
                         self.phase = .tracking
                     }
                 }
             }
         } else {
+            AppLogger.tracking.info("🛌 Calibration already completed in pre-tracking flow — skipping re-calibration")
             phase = .tracking
         }
 
         smartAlarmService.startMonitoring(
             motionService: motionService,
-            notificationService: notificationService
+            notificationService: notificationService,
+            healthKitService: healthKitService,
+            intelligenceService: intelligenceService
         )
 
         crashRecoveryService.startPeriodicSave { [weak self] in
@@ -159,8 +210,87 @@ final class SleepTrackingService {
             }
         }
 
+        // Reset watch HR stats
+        watchHRMin = 0
+        watchHRMax = 0
+        watchHRSum = 0
+        watchHRCount = 0
+
+        // Push snoring count to watch every 60 seconds
+        snoringPushTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                NotificationCenter.default.post(
+                    name: .watchSnoringCountUpdate,
+                    object: nil,
+                    userInfo: ["count": self.audioService.snoringEvents.count]
+                )
+            }
+        }
+
+        // Observe movement data from watch accelerometer
+        watchMovementObserver = NotificationCenter.default.addObserver(
+            forName: .watchMovementData,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self,
+                  let points = notification.userInfo?["points"] as? [MovementDataPoint] else { return }
+            AppLogger.tracking.info("⌚ Received \(points.count) movement points from watch")
+            self.motionService.dataPoints.append(contentsOf: points)
+        }
+
+        // Handle watch disconnect/reconnect during active tracking
+        watchDisconnectObserver = NotificationCenter.default.addObserver(
+            forName: .watchReachabilityChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self, self.phase == .tracking || self.phase == .calibrating else { return }
+            let reachable = notification.userInfo?["reachable"] as? Bool ?? false
+            self.handleWatchReachabilityChange(reachable: reachable)
+        }
+
         UserDefaults.standard.set(true, forKey: "isCurrentlyTracking")
         WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    // MARK: - Watch Reachability Change During Tracking
+
+    /// Called when watch connects or disconnects during an active session.
+    /// Switches motion data source dynamically to avoid data gaps.
+    func handleWatchReachabilityChange(reachable: Bool) {
+        guard let settings = settings, settings.trackMotion else { return }
+
+        if reachable && !isUsingWatchMotion {
+            // Watch reconnected — switch to watch motion, stop iPhone accelerometer
+            AppLogger.tracking.info("⌚ Watch reconnected during tracking — switching motion to watch")
+            motionService.stopTracking()
+            isUsingWatchMotion = true
+        } else if !reachable && isUsingWatchMotion {
+            // Watch disconnected — fall back to iPhone accelerometer
+            AppLogger.tracking.info("📱 Watch disconnected during tracking — falling back to iPhone accelerometer")
+            motionService.startTracking(sensitivity: settings.sensitivityLevel)
+            isUsingWatchMotion = false
+        }
+    }
+
+    /// Update watch heart rate stats from live data
+    func updateWatchHR(_ bpm: Double) {
+        guard bpm > 0 else { return }
+        if watchHRCount == 0 {
+            watchHRMin = bpm
+            watchHRMax = bpm
+        } else {
+            watchHRMin = min(watchHRMin, bpm)
+            watchHRMax = max(watchHRMax, bpm)
+        }
+        watchHRSum += bpm
+        watchHRCount += 1
+    }
+
+    var watchHRAvg: Double {
+        watchHRCount > 0 ? watchHRSum / Double(watchHRCount) : 0
     }
 
     // MARK: - Stop Tracking
@@ -177,6 +307,18 @@ final class SleepTrackingService {
         elapsedTimer = nil
         batteryCheckTimer?.invalidate()
         batteryCheckTimer = nil
+        snoringPushTimer?.invalidate()
+        snoringPushTimer = nil
+
+        if let observer = watchMovementObserver {
+            NotificationCenter.default.removeObserver(observer)
+            watchMovementObserver = nil
+        }
+        if let observer = watchDisconnectObserver {
+            NotificationCenter.default.removeObserver(observer)
+            watchDisconnectObserver = nil
+        }
+        isUsingWatchMotion = false
 
         liveActivityService.endActivity()
         sleepFocusService.disableSleepFocus()
@@ -210,8 +352,9 @@ final class SleepTrackingService {
 
     // MARK: - Save Session
 
-    func saveSession(quality: SleepQuality, notes: String, modelContext: ModelContext, cloudService: CloudSyncService) async {
-        guard let start = startTime else { return }
+    @discardableResult
+    func saveSession(quality: SleepQuality, notes: String, modelContext: ModelContext, cloudService: CloudSyncService) async -> SleepSession? {
+        guard let start = startTime else { return nil }
         let end = Date()
 
         let movementPoints = motionService.dataPoints
@@ -245,6 +388,40 @@ final class SleepTrackingService {
             AppLogger.error("Failed to save sleep session", error: error)
         }
 
+        // Pull Apple Watch biometrics AND stage classifications for this
+        // window if the user wore one. Runs off-main so it doesn't block
+        // the save/UI. Re-saves the session in place when values arrive.
+        // This is what turns us from "iPhone estimator" into "works with
+        // your Apple Watch" in the competitive sense.
+        Task { @MainActor [healthKitService = self.healthKitService] in
+            async let biometricsTask = healthKitService.fetchAllBiometrics(from: start, to: end)
+            async let restingHRTask = healthKitService.fetchRestingHeartRate()
+            async let watchStagesTask = healthKitService.fetchAppleWatchStages(from: start, to: end)
+
+            let biometrics = await biometricsTask
+            let restingHR = await restingHRTask
+            let watchStages = await watchStagesTask
+
+            session.averageHeartRateBPM = biometrics.heartRate?.average
+            session.minimumHeartRateBPM = biometrics.heartRate?.minimum
+            session.hrvAverageMS = biometrics.hrvAverage
+            session.respiratoryRateBPM = biometrics.respiratoryRate
+            session.bloodOxygenPercent = biometrics.bloodOxygen
+            session.wristTemperatureCelsius = biometrics.wristTemperature
+            session.restingHeartRateBPM = restingHR
+
+            // Prefer Apple Watch stages over our iPhone estimation when
+            // available — Watch has direct HR + motion, much more reliable
+            // than our audio+motion proxy.
+            if !watchStages.isEmpty {
+                session.sleepStages = watchStages
+                AppLogger.healthKit.info("⌚ Using \(watchStages.count) Apple Watch sleep-stage samples as ground truth")
+            }
+
+            try? modelContext.save()
+            AppLogger.healthKit.info("⌚ Biometrics merged — avgHR:\(biometrics.heartRate?.average ?? -1), HRV:\(biometrics.hrvAverage ?? -1)ms")
+        }
+
         if let settings = settings, settings.syncHealthKit {
             do {
                 try await healthKitService.saveSleepSession(session)
@@ -262,6 +439,30 @@ final class SleepTrackingService {
                 score: session.sleepScore
             )
         }
+
+        // Notify watch of sleep summary with full data
+        var summaryInfo: [String: Any] = [
+            "score": session.sleepScore,
+            "duration": session.durationSeconds,
+            "quality": session.quality.label,
+            "snoringCount": snoringEvents.count,
+            "hrMin": watchHRMin,
+            "hrMax": watchHRMax,
+            "hrAvg": watchHRAvg
+        ]
+        if let stagesData = try? JSONEncoder().encode(stages),
+           let stagesString = String(data: stagesData, encoding: .utf8) {
+            summaryInfo["stagesJSON"] = stagesString
+        }
+        if let movData = try? JSONEncoder().encode(movementPoints),
+           let movString = String(data: movData, encoding: .utf8) {
+            summaryInfo["movementJSON"] = movString
+        }
+        NotificationCenter.default.post(
+            name: .watchMorningSummary,
+            object: nil,
+            userInfo: summaryInfo
+        )
 
         crashRecoveryService.clearRecovery()
 
@@ -303,6 +504,8 @@ final class SleepTrackingService {
         UserDefaults.standard.set("\(hours)h \(minutes)m", forKey: "lastSleepDuration")
         UserDefaults.standard.set(session.sleepScore, forKey: "weeklyAvgScore")
         WidgetCenter.shared.reloadAllTimelines()
+
+        return session
     }
 
     // MARK: - Reset

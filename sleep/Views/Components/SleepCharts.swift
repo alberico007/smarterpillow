@@ -104,7 +104,29 @@ struct DurationTrendChart: View {
 
     let sessions: [SleepSession]
 
+    /// Adaptive Y-axis range + stride based on the longest session in view.
+    /// Short sessions (a nap or test) get fine-grained 15-minute ticks so the
+    /// bar isn't a tiny sliver against an 8-hour scale. Normal-length sleeps
+    /// get whole-hour ticks like before.
+    private var yConfig: (maxHours: Double, stride: Double) {
+        let maxHours = sessions.map { $0.durationSeconds / 3600.0 }.max() ?? 0
+        if maxHours <= 0 {
+            return (maxHours: 1.0, stride: 0.25)          // no data → show 0–1h axis with 15m ticks
+        } else if maxHours < 2 {
+            let top = max(0.5, ceil(maxHours / 0.25) * 0.25) // round up to next 15 min
+            return (maxHours: top, stride: 0.25)          // 15-minute ticks
+        } else if maxHours < 4 {
+            let top = ceil(maxHours / 0.5) * 0.5          // round up to next 30 min
+            return (maxHours: top, stride: 0.5)           // 30-minute ticks
+        } else if maxHours < 8 {
+            return (maxHours: max(8.0, ceil(maxHours)), stride: 1) // 1-hour ticks
+        } else {
+            return (maxHours: ceil(maxHours), stride: 2)  // 2-hour ticks for long ranges
+        }
+    }
+
     var body: some View {
+        let cfg = yConfig
         Chart(sessions) { session in
             BarMark(
                 x: .value("Date", session.startTime, unit: .day),
@@ -113,21 +135,39 @@ struct DurationTrendChart: View {
             .foregroundStyle(.indigo.gradient)
             .cornerRadius(4)
         }
+        .chartYScale(domain: 0...cfg.maxHours)
         .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: 7)) { value in
+            AxisMarks(values: .stride(by: .day)) { value in
                 AxisValueLabel(format: .dateTime.month(.abbreviated).day())
                 AxisGridLine()
             }
         }
         .chartYAxis {
-            AxisMarks(position: .leading) { value in
+            AxisMarks(position: .leading, values: .stride(by: cfg.stride)) { value in
                 AxisValueLabel {
                     if let v = value.as(Double.self) {
-                        Text("\(Int(v))h")
+                        Text(hourLabel(for: v))
                     }
                 }
                 AxisGridLine()
             }
+        }
+    }
+
+    /// Compact axis label that adapts to the value:
+    ///   0      → "0"
+    ///   0.25   → "15m"
+    ///   1.5    → "1h 30m"
+    ///   2      → "2h"
+    private func hourLabel(for hours: Double) -> String {
+        guard hours > 0 else { return "0" }
+        let totalMinutes = Int((hours * 60).rounded())
+        let h = totalMinutes / 60
+        let m = totalMinutes % 60
+        switch (h, m) {
+        case (0, let m): return "\(m)m"
+        case (let h, 0): return "\(h)h"
+        case (let h, let m): return "\(h)h \(m)m"
         }
     }
 }

@@ -21,40 +21,44 @@ struct ContentView: View {
     @State private var selectedTab: AppTab = .home
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            Tab("Home", systemImage: "house.fill", value: .home) {
-                HomeView(selectedTab: $selectedTab)
-            }
+        Group {
+            if !settings.hasCompletedOnboarding {
+                // Render onboarding as the root view (not as a cover over
+                // the Home tab) so users don't see the main UI flicker
+                // behind it at launch.
+                OnboardingView {
+                    settings.hasCompletedOnboarding = true
+                }
+                .transition(.opacity)
+            } else {
+                TabView(selection: $selectedTab) {
+                    Tab("Home", systemImage: "house.fill", value: .home) {
+                        HomeView(selectedTab: $selectedTab)
+                    }
 
-            Tab("Track", systemImage: "moon.zzz.fill", value: .track) {
-                TonightView()
-            }
+                    Tab("Track", systemImage: "moon.zzz.fill", value: .track) {
+                        TonightView()
+                    }
 
-            Tab("Reports", systemImage: "chart.line.uptrend.xyaxis", value: .reports) {
-                ReportsView()
-            }
+                    Tab("Reports", systemImage: "chart.line.uptrend.xyaxis", value: .reports) {
+                        ReportsView()
+                    }
 
-            Tab("Settings", systemImage: "gearshape", value: .settings) {
-                SettingsView()
+                    Tab("Settings", systemImage: "gearshape", value: .settings) {
+                        SettingsView()
+                    }
+                }
+                .tabBarMinimizeBehavior(.onScrollDown)
+                .transition(.opacity)
             }
         }
-        .tabBarMinimizeBehavior(.onScrollDown)
+        .animation(.easeInOut(duration: 0.25), value: settings.hasCompletedOnboarding)
         .onAppear {
             AppLogger.ui.info("ContentView appeared — onboarding completed: \(settings.hasCompletedOnboarding)")
-            if !settings.hasCompletedOnboarding {
-                showingOnboarding = true
-            }
         }
         .onChange(of: settings.hasCompletedOnboarding) { _, completed in
             if !completed {
                 selectedTab = .home
-                showingOnboarding = true
-            }
-        }
-        .fullScreenCover(isPresented: $showingOnboarding) {
-            OnboardingView {
-                settings.hasCompletedOnboarding = true
-                showingOnboarding = false
             }
         }
     }

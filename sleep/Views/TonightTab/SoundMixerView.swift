@@ -17,10 +17,8 @@ struct SoundMixerView: View {
     @Query(sort: \SoundPreset.createdAt, order: .reverse) private var presets: [SoundPreset]
 
     @Environment(SoundService.self) private var soundService
-    @State private var storeKitService = StoreKitService()
     @State private var selectedCategory: SoundItem.SoundCategory? = nil
     @State private var showingSavePreset = false
-    @State private var showingPremiumAlert = false
     @State private var presetName = ""
 
     private var filteredSounds: [SoundItem] {
@@ -85,9 +83,7 @@ struct SoundMixerView: View {
                                 sound: sound,
                                 isActive: soundService.activeSlots.contains { $0.sound.id == sound.id }
                             ) {
-                                if sound.isPremium && !storeKitService.isPremium {
-                                    showingPremiumAlert = true
-                                } else if soundService.activeSlots.contains(where: { $0.sound.id == sound.id }) {
+                                if soundService.activeSlots.contains(where: { $0.sound.id == sound.id }) {
                                     soundService.removeSound(id: sound.id)
                                 } else {
                                     soundService.addSound(sound)
@@ -207,12 +203,6 @@ struct SoundMixerView: View {
             } message: {
                 Text("Give your sound mix a name")
             }
-            .alert("Premium Sound", isPresented: $showingPremiumAlert) {
-                Button("View Plans") { showingPremiumAlert = false }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This sound requires a Premium subscription. Upgrade to unlock 200+ sounds, meditations, and stories.")
-            }
         }
     }
 }
@@ -263,11 +253,6 @@ private struct SoundTile: View {
                     .foregroundStyle(isActive ? .primary : .secondary)
                     .lineLimit(1)
 
-                if sound.isPremium {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 8))
-                        .foregroundStyle(.orange)
-                }
             }
         }
         .buttonStyle(.plain)

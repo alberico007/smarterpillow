@@ -86,7 +86,8 @@ struct ProfileView: View {
                 }
             }
 
-            // MARK: Account
+            // MARK: Account (read-only info — sign-out lives at the very
+            // bottom of Settings, not here)
             Section("Account") {
                 if let user = firebaseUser {
                     HStack {
@@ -95,10 +96,6 @@ struct ProfileView: View {
                         Text(user.email ?? "Connected")
                             .foregroundStyle(.secondary)
                     }
-
-                    Button("Sign Out", role: .destructive) {
-                        showingSignOutConfirmation = true
-                    }
                 } else {
                     SignInWithAppleButton(.signIn) { request in
                         request.requestedScopes = [.fullName, .email]
@@ -106,8 +103,13 @@ struct ProfileView: View {
                         switch result {
                         case .success(let authorization):
                             authService.handleAuthorization(result: authorization)
-                            if let name = authService.userName {
-                                settings.userName = name
+                            if let given = authService.userGivenName, !given.isEmpty,
+                               settings.userName.isEmpty {
+                                settings.userName = given
+                            }
+                            if let family = authService.userFamilyName, !family.isEmpty,
+                               settings.userLastName.isEmpty {
+                                settings.userLastName = family
                             }
                             firebaseUser = Auth.auth().currentUser
                         case .failure(let error):
@@ -133,15 +135,18 @@ struct ProfileView: View {
         .onAppear {
             firebaseUser = Auth.auth().currentUser
         }
+        .onDisappear {
+            authService.syncSettings(settings)
+        }
         .alert("Sign Out?", isPresented: $showingSignOutConfirmation) {
             Button("Sign Out", role: .destructive) {
+                LocalDataCleanup.wipeUserData(modelContext: modelContext, settings: settings)
                 authService.signOut()
                 firebaseUser = nil
-                settings.hasCompletedOnboarding = false
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("You can sign back in anytime.")
+            Text("Signing out will remove your sleep data from this device. It stays backed up in the cloud and will return when you sign back in.")
         }
         .alert("Delete Everything?", isPresented: $showingDeleteConfirmation) {
             Button("Delete", role: .destructive) {
@@ -156,26 +161,15 @@ struct ProfileView: View {
     private func deleteEverything() {
         AppLogger.auth.info("User requested account & data deletion")
 
-        for session in sessions {
-            modelContext.delete(session)
-        }
-        try? modelContext.save()
-        AppLogger.auth.info("Deleted \(sessions.count) sleep sessions")
-
         authService.deleteFirebaseAccount()
+        LocalDataCleanup.wipeUserData(modelContext: modelContext, settings: settings)
         authService.signOut()
         firebaseUser = nil
 
-        settings.userName = ""
-        settings.userLastName = ""
-        settings.userAge = 30
-        settings.userGender = "Not specified"
-        settings.sleepGoalHours = 8.0
-        settings.hasCompletedOnboarding = false
         AppLogger.auth.info("All data deleted and settings reset")
     }
 
     private func recommendedSleep(age: Int) -> String {
         recommendedSleepLabel(forAge: age)
     }
-
+}

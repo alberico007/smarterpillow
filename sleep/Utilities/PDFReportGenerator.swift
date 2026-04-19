@@ -30,10 +30,17 @@ enum PDFReportGenerator {
             context.beginPage()
             var yPosition: CGFloat = margin
 
+            // Explicit colors — avoid dynamic semantic colors which resolve to
+            // white in dark mode and render invisible in PDF viewers.
+            let primaryTextColor = UIColor.black
+            let secondaryTextColor = UIColor.darkGray
+            let tertiaryTextColor = UIColor.gray
+            let separatorColor = UIColor.lightGray
+
             // Title
             let titleAttributes: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(ofSize: 24, weight: .bold),
-                .foregroundColor: UIColor.label
+                .foregroundColor: primaryTextColor
             ]
             let title = "Slumberscope Sleep Report"
             title.draw(at: CGPoint(x: margin, y: yPosition), withAttributes: titleAttributes)
@@ -45,7 +52,7 @@ enum PDFReportGenerator {
             let rangeText = "\(dateFormatter.string(from: startDate)) - \(dateFormatter.string(from: endDate))"
             let subtitleAttributes: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(ofSize: 14, weight: .regular),
-                .foregroundColor: UIColor.secondaryLabel
+                .foregroundColor: secondaryTextColor
             ]
             rangeText.draw(at: CGPoint(x: margin, y: yPosition), withAttributes: subtitleAttributes)
             yPosition += 30
@@ -54,7 +61,7 @@ enum PDFReportGenerator {
             let linePath = UIBezierPath()
             linePath.move(to: CGPoint(x: margin, y: yPosition))
             linePath.addLine(to: CGPoint(x: pageWidth - margin, y: yPosition))
-            UIColor.separator.setStroke()
+            separatorColor.setStroke()
             linePath.lineWidth = 1
             linePath.stroke()
             yPosition += 20
@@ -69,11 +76,11 @@ enum PDFReportGenerator {
             // Summary stats
             let sectionTitleAttributes: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(ofSize: 18, weight: .semibold),
-                .foregroundColor: UIColor.label
+                .foregroundColor: primaryTextColor
             ]
             let bodyAttributes: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(ofSize: 12, weight: .regular),
-                .foregroundColor: UIColor.label
+                .foregroundColor: primaryTextColor
             ]
 
             "Summary".draw(at: CGPoint(x: margin, y: yPosition), withAttributes: sectionTitleAttributes)
@@ -102,7 +109,7 @@ enum PDFReportGenerator {
             let line2 = UIBezierPath()
             line2.move(to: CGPoint(x: margin, y: yPosition))
             line2.addLine(to: CGPoint(x: pageWidth - margin, y: yPosition))
-            UIColor.separator.setStroke()
+            separatorColor.setStroke()
             line2.lineWidth = 0.5
             line2.stroke()
             yPosition += 20
@@ -118,7 +125,7 @@ enum PDFReportGenerator {
             // Column headers
             let headerAttributes: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(ofSize: 10, weight: .semibold),
-                .foregroundColor: UIColor.secondaryLabel
+                .foregroundColor: secondaryTextColor
             ]
             let columnX: [CGFloat] = [margin, margin + 80, margin + 170, margin + 260, margin + 340, margin + 410]
             let headers = ["Date", "Bedtime", "Wake Up", "Duration", "Score", "Quality"]
@@ -131,7 +138,7 @@ enum PDFReportGenerator {
             // Session rows
             let rowAttributes: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(ofSize: 10, weight: .regular),
-                .foregroundColor: UIColor.label
+                .foregroundColor: primaryTextColor
             ]
             let shortDateFormatter = DateFormatter()
             shortDateFormatter.dateFormat = "MMM d"
@@ -164,7 +171,7 @@ enum PDFReportGenerator {
                     let noteText = "  Notes: \(session.notes)"
                     let noteAttributes: [NSAttributedString.Key: Any] = [
                         .font: UIFont.italicSystemFont(ofSize: 9),
-                        .foregroundColor: UIColor.secondaryLabel
+                        .foregroundColor: secondaryTextColor
                     ]
                     let constraintSize = CGSize(width: contentWidth - 20, height: .greatestFiniteMagnitude)
                     let noteRect = (noteText as NSString).boundingRect(
@@ -185,7 +192,7 @@ enum PDFReportGenerator {
             yPosition = pageHeight - margin
             let footerAttributes: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(ofSize: 8, weight: .regular),
-                .foregroundColor: UIColor.tertiaryLabel
+                .foregroundColor: tertiaryTextColor
             ]
             let footerDateFormatter = DateFormatter()
             footerDateFormatter.dateStyle = .medium

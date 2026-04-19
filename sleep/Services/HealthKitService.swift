@@ -404,6 +404,58 @@ final class HealthKitService {
         }
     }
 
+    // MARK: - Fetch Apple Watch Sleep Stages
+
+    /// Returns the stage-classified sleep samples that Apple Watch wrote
+    /// during the given window, converted into our internal `SleepStageEntry`
+    /// type. When this returns a non-empty array, prefer it over our own
+    /// iPhone-only motion+audio estimation — Apple Watch has direct heart
+    /// rate and motion data that's much more reliable.
+    func fetchAppleWatchStages(from start: Date, to end: Date) async -> [SleepStageEntry] {
+        guard isAvailable, isAuthorized else { return [] }
+        let sleepType = HKCategoryType(.sleepAnalysis)
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+
+        let samples: [HKCategorySample]
+        do {
+            samples = try await withCheckedThrowingContinuation { continuation in
+                let query = HKSampleQuery(
+                    sampleType: sleepType,
+                    predicate: predicate,
+                    limit: HKObjectQueryNoLimit,
+                    sortDescriptors: [sortDescriptor]
+                ) { _, results, error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume(returning: (results as? [HKCategorySample]) ?? [])
+                    }
+                }
+                self.healthStore.execute(query)
+            }
+        } catch {
+            return []
+        }
+
+        return samples.compactMap { sample -> SleepStageEntry? in
+            let value = HKCategoryValueSleepAnalysis(rawValue: sample.value)
+            let mapped: SleepStageType
+            switch value {
+            case .awake: mapped = .awake
+            case .asleepCore: mapped = .light
+            case .asleepDeep: mapped = .deep
+            case .asleepREM: mapped = .rem
+            default: return nil // inBed / asleepUnspecified — we don't merge those
+            }
+            return SleepStageEntry(
+                startTime: sample.startDate,
+                endTime: sample.endDate,
+                stage: mapped
+            )
+        }
+    }
+
     // MARK: - Fetch All Biometrics
 
     func fetchAllBiometrics(from start: Date, to end: Date) async -> BiometricStats {

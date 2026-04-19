@@ -5,6 +5,7 @@
 //  Created by Michael Berinshteyn on 3/17/26.
 //
 
+import os
 import SwiftData
 import SwiftUI
 
@@ -28,6 +29,16 @@ struct MorningReviewView: View {
     @State private var aiSummary: String? = nil
     @State private var intelligenceService = IntelligenceService()
     @State private var showingShareSheet = false
+
+    // Dream journal (AI theme tagging)
+    @State private var dreamJournal: String = ""
+    @State private var dreamThemes: [String] = []
+    @State private var isTaggingDream = false
+
+    // Metric explainer
+    @State private var explainer: MetricExplainerRequest? = nil
+    @State private var explainerText: String? = nil
+    @State private var isExplaining = false
 
     private var previousSessions: [SleepSession] {
         Array(recentSessions.prefix(7))
@@ -106,7 +117,13 @@ struct MorningReviewView: View {
 
                 // Biometrics Card (Apple Watch)
                 if heartRateLoaded {
-                    BiometricsCard(heartRate: heartRate, biometrics: biometrics)
+                    BiometricsCard(
+                        heartRate: heartRate,
+                        biometrics: biometrics,
+                        onExplain: { name, value in
+                            triggerExplainer(name: name, value: value)
+                        }
+                    )
                 }
 
                 // Score Breakdown
@@ -119,7 +136,9 @@ struct MorningReviewView: View {
                     StageTimelineCard(stages: session.sleepStages)
                 }
 
-                // Audio Highlights
+                // Audio Highlights — playback of recorded snoring clips with
+                // "Not me" button so users can drop false positives before
+                // the session is saved. Logs each action for Xcode console.
                 if !trackingService.audioService.snoringEvents.isEmpty {
                     GlassCard {
                         VStack(alignment: .leading, spacing: 12) {
@@ -127,20 +146,56 @@ struct MorningReviewView: View {
                                 Label("Audio Highlights", systemImage: "waveform")
                                     .font(.headline)
                                 Spacer()
-                                Text("\(trackingService.audioService.snoringEvents.count) events")
-                                    .font(.caption)
+                                Button {
+                                    triggerExplainer(
+                                        name: "Snore events",
+                                        value: "\(trackingService.audioService.snoringEvents.count) tonight"
+                                    )
+                                } label: {
+                                    HStack(spacing: 3) {
+                                        Text("\(trackingService.audioService.snoringEvents.count) event\(trackingService.audioService.snoringEvents.count == 1 ? "" : "s")")
+                                            .font(.caption)
+                                        Image(systemName: "info.circle")
+                                            .font(.caption2)
+                                    }
                                     .foregroundStyle(.secondary)
+                                }
+                                .buttonStyle(.plain)
                             }
 
-                            ForEach(trackingService.audioService.snoringEvents.prefix(5)) { event in
+                            Text("Tap ▶ to listen. Remove anything that isn't you snoring.")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+
+                            ForEach(trackingService.audioService.snoringEvents) { event in
                                 let eventType = AudioEventType.classify(
                                     amplitude: event.averageAmplitude,
                                     duration: event.duration
                                 )
-                                AudioPlayerView(event: event, eventType: eventType)
-                                if event.id != trackingService.audioService.snoringEvents.prefix(5).last?.id {
-                                    Divider()
+                                HStack(alignment: .center, spacing: 8) {
+                                    AudioPlayerView(event: event, eventType: eventType)
+                                    // Classification label if classifier
+                                    // tagged it something other than a
+                                    // high-confidence snore.
+                                    if !event.classification.isEmpty,
+                                       event.classification != "snoring" {
+                                        Text(event.classification.replacingOccurrences(of: "_", with: " "))
+                                            .font(.caption2)
+                                            .padding(.horizontal, 6).padding(.vertical, 2)
+                                            .background(Color.orange.opacity(0.15))
+                                            .foregroundStyle(.orange)
+                                            .clipShape(Capsule())
+                                    }
+                                    Button {
+                                        removeSnoreEvent(id: event.id)
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel("Remove as false positive")
                                 }
+                                Divider().opacity(0.3)
                             }
                         }
                     }
@@ -211,23 +266,40 @@ struct MorningReviewView: View {
                     }
                 }
 
+                // Dream journal — AI theme tagging
+                dreamJournalCard
+
                 // Save button
                 if isSaving {
                     ProgressView("Saving...")
                         .padding()
                 } else {
                     GlassButton(title: "Save Session", icon: "checkmark.circle.fill") {
+                        AppLogger.ui.info("User saving session — quality: \(selectedQuality.label), mood: \(selectedMood?.label ?? "none")")
                         isSaving = true
                         Task {
-                            await trackingService.saveSession(
+                            let savedSession = await trackingService.saveSession(
                                 quality: selectedQuality,
                                 notes: notes,
                                 modelContext: modelContext,
                                 cloudService: cloudService
                             )
-                            if let mood = selectedMood, let lastSession = recentSessions.first {
-                                lastSession.morningMood = mood.rawValue
-                                try? modelContext.save()
+                            if let session = savedSession {
+                                if let mood = selectedMood {
+                                    session.morningMood = mood.rawValue
+                                }
+                                if !dreamJournal.isEmpty {
+                                    session.dreamJournal = dreamJournal
+                                    if !dreamThemes.isEmpty {
+                                        session.dreamThemes = dreamThemes
+                                    }
+                                }
+                                do {
+                                    try modelContext.save()
+                                    AppLogger.data.info("Morning mood/dream saved on session score: \(session.sleepScore)")
+                                } catch {
+                                    AppLogger.error("Failed to save morning mood/dream", error: error)
+                                }
                             }
                             isSaving = false
                         }
@@ -249,6 +321,27 @@ struct MorningReviewView: View {
                     .buttonStyle(.plain)
                 }
 
+                // Share an image card — the viral-growth surface. Rendered
+                // on the fly from the current session + AI summary.
+                if let start = trackingService.startTime {
+                    let tempSession = SleepSession(
+                        startTime: start,
+                        endTime: Date(),
+                        quality: selectedQuality,
+                        movementPoints: trackingService.motionService.dataPoints,
+                        snoringEvents: trackingService.audioService.snoringEvents
+                    )
+                    SleepCardShareLink(session: tempSession, aiSummary: aiSummary)
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            LinearGradient(colors: [.cyan.opacity(0.8), .indigo.opacity(0.7)], startPoint: .leading, endPoint: .trailing)
+                        )
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+
                 Spacer(minLength: 40)
             }
             .padding(.horizontal)
@@ -259,15 +352,27 @@ struct MorningReviewView: View {
                 ShareSheet(text: summary)
             }
         }
+        .sheet(item: $explainer) { req in
+            MetricExplainerSheet(
+                metricName: req.name,
+                metricValue: req.value,
+                isLoading: isExplaining,
+                text: explainerText
+            )
+            .presentationDetents([.medium])
+        }
         .task {
+            AppLogger.ui.info("Morning review loading data...")
             await weatherService.fetchWakeUpWeather()
 
             if let start = trackingService.startTime {
+                AppLogger.healthKit.info("Fetching biometrics for session starting \(start.formatted())")
                 heartRate = await trackingService.healthKitService.fetchHeartRate(
                     from: start,
                     to: Date()
                 )
                 biometrics = await trackingService.healthKitService.fetchAllBiometrics(from: start, to: Date())
+                AppLogger.healthKit.info("Biometrics loaded — HR: \(heartRate != nil ? "yes" : "no"), biometrics: \(biometrics != nil ? "yes" : "no")")
             }
             heartRateLoaded = true
 
@@ -280,8 +385,119 @@ struct MorningReviewView: View {
                     snoringEvents: trackingService.audioService.snoringEvents
                 )
                 aiSummary = await intelligenceService.generateMorningSummary(session: tempSession)
+                AppLogger.intelligence.info("AI summary: \(aiSummary != nil ? "generated" : "unavailable")")
             }
         }
+    }
+
+    // MARK: - Dream journal card
+
+    @ViewBuilder
+    private var dreamJournalCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Label("Dream Journal", systemImage: "sparkles")
+                        .font(.headline)
+                        .foregroundStyle(.purple)
+                    Spacer()
+                    if intelligenceService.isAvailable {
+                        Text("AI")
+                            .font(.caption2).fontWeight(.bold)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(LinearGradient(colors: [.purple, .indigo], startPoint: .leading, endPoint: .trailing))
+                            .foregroundStyle(.white)
+                            .clipShape(Capsule())
+                    }
+                }
+
+                TextField("Describe what you dreamt (optional)", text: $dreamJournal, axis: .vertical)
+                    .lineLimit(3...6)
+                    .textFieldStyle(.plain)
+
+                HStack {
+                    Button {
+                        Task { await tagDreamNow() }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if isTaggingDream {
+                                ProgressView().scaleEffect(0.7)
+                            } else {
+                                Image(systemName: "tag.fill")
+                            }
+                            Text(isTaggingDream ? "Tagging…" : "Tag themes")
+                        }
+                        .font(.caption).fontWeight(.semibold)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(Color.purple.opacity(0.15))
+                        .foregroundStyle(.purple)
+                        .clipShape(Capsule())
+                    }
+                    .disabled(dreamJournal.trimmingCharacters(in: .whitespaces).count < 10 || isTaggingDream)
+                    Spacer()
+                }
+
+                if !dreamThemes.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(dreamThemes, id: \.self) { theme in
+                                Text(theme)
+                                    .font(.caption2).fontWeight(.semibold)
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
+                                    .background(Color.purple.opacity(0.15))
+                                    .foregroundStyle(.purple)
+                                    .clipShape(Capsule())
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func tagDreamNow() async {
+        let text = dreamJournal.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard text.count > 10 else { return }
+        isTaggingDream = true
+        defer { isTaggingDream = false }
+        dreamThemes = await intelligenceService.tagDreamThemes(from: text)
+        AppLogger.intelligence.info("🤖 Dream journal → \(dreamThemes.count) themes")
+    }
+
+    // MARK: - Metric explainer
+
+    private func triggerExplainer(name: String, value: String) {
+        explainer = MetricExplainerRequest(name: name, value: value)
+        explainerText = nil
+        guard let session = previewSession else { return }
+        isExplaining = true
+        Task {
+            let text = await intelligenceService.explainMetric(
+                name: name,
+                value: value,
+                session: session,
+                recent: previousSessions
+            )
+            await MainActor.run {
+                explainerText = text
+                isExplaining = false
+            }
+        }
+    }
+
+    /// Remove a snoring event the user flagged as "not me". Runs before the
+    /// session is persisted, so the false positive never reaches SwiftData or
+    /// Firestore. Also deletes the audio clip file if one exists. Logs to
+    /// `AppLogger.audio` so you can verify in Xcode.
+    private func removeSnoreEvent(id: UUID) {
+        let events = trackingService.audioService.snoringEvents
+        guard let event = events.first(where: { $0.id == id }) else { return }
+        AppLogger.audio.info("🗑️ User removed snore event — id: \(id.uuidString), classification: \(event.classification) (\(String(format: "%.2f", event.classificationConfidence)))")
+        if let url = event.audioFileURL {
+            try? FileManager.default.removeItem(at: url)
+        }
+        trackingService.audioService.snoringEvents.removeAll { $0.id == id }
     }
 
     private func buildShareText(startTime: Date) -> String {
@@ -575,6 +791,7 @@ private struct QualityButton: View {
 private struct BiometricsCard: View {
     let heartRate: HeartRateStats?
     let biometrics: BiometricStats?
+    var onExplain: ((String, String) -> Void)? = nil
 
     var body: some View {
         GlassCard {
@@ -594,8 +811,10 @@ private struct BiometricsCard: View {
                 if let hr = heartRate {
                     HStack(spacing: 0) {
                         BiometricStatBlock(value: hr.averageFormatted, label: "Avg HR", icon: "heart.fill", color: .red)
+                            .onTapGesture { onExplain?("Avg Heart Rate", hr.averageFormatted) }
                         Divider().frame(height: 40)
                         BiometricStatBlock(value: hr.minimumFormatted, label: "Lowest", icon: "arrow.down", color: .blue)
+                            .onTapGesture { onExplain?("Lowest Heart Rate", hr.minimumFormatted) }
                         Divider().frame(height: 40)
                         BiometricStatBlock(value: hr.maximumFormatted, label: "Highest", icon: "arrow.up", color: .orange)
                     }
@@ -607,6 +826,7 @@ private struct BiometricsCard: View {
                     HStack(spacing: 0) {
                         if let hrv = bio.hrvAverage {
                             BiometricStatBlock(value: "\(Int(hrv)) ms", label: "HRV", icon: "waveform.path.ecg", color: .green)
+                                .onTapGesture { onExplain?("HRV", "\(Int(hrv)) ms") }
                         }
                         if let rr = bio.respiratoryRate {
                             if bio.hrvAverage != nil { Divider().frame(height: 40) }
@@ -673,6 +893,14 @@ private struct BiometricStatBlock: View {
 private struct ScoreBreakdownCard: View {
     let session: SleepSession
 
+    private var hasRecoveryData: Bool {
+        session.hrvAverageMS != nil || session.minimumHeartRateBPM != nil
+    }
+
+    private var movementMax: Int { hasRecoveryData ? 10 : 20 }
+    private var snoringMax: Int { hasRecoveryData ? 10 : 15 }
+    private var recoveryMax: Int { hasRecoveryData ? 15 : 0 }
+
     private var durationScore: Int {
         let hours = session.durationSeconds / 3600.0
         if hours >= 7 && hours <= 9 { return 35 }
@@ -687,23 +915,52 @@ private struct ScoreBreakdownCard: View {
     }
 
     private var movementScore: Int {
-        Int(max(0, 20 - session.averageMovement * 40))
+        Int(max(0, Double(movementMax) - session.averageMovement * 40))
     }
 
     private var snoringScore: Int {
-        Int(15 - min(15, Double(session.snoringCount) * 3))
+        let perEvent = Double(snoringMax) / 5.0
+        return Int(Double(snoringMax) - min(Double(snoringMax), Double(session.snoringCount) * perEvent))
+    }
+
+    private var recoveryScore: Int {
+        guard hasRecoveryData else { return 0 }
+        var points: Double = 0
+        if let hrv = session.hrvAverageMS {
+            let normalized = max(0, min(1, (hrv - 10) / 80))
+            points += normalized * Double(recoveryMax) * 0.6
+        }
+        if let minHR = session.minimumHeartRateBPM,
+           let resting = session.restingHeartRateBPM, resting > 0 {
+            let drop = max(0, resting - minHR)
+            let normalized = max(0, min(1, drop / 15.0))
+            points += normalized * Double(recoveryMax) * 0.4
+        } else if session.hrvAverageMS != nil {
+            points += Double(recoveryMax) * 0.3
+        }
+        return Int(min(Double(recoveryMax), points).rounded())
     }
 
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Score Breakdown")
-                    .font(.headline)
+                HStack {
+                    Text("Score Breakdown").font(.headline)
+                    if hasRecoveryData {
+                        Spacer()
+                        Label("Apple Watch", systemImage: "applewatch")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
 
                 ScoreRow(label: "Duration", score: durationScore, maxScore: 35, color: .cyan, icon: "clock.fill")
                 ScoreRow(label: "Quality", score: qualityScore, maxScore: 30, color: .yellow, icon: "star.fill")
-                ScoreRow(label: "Restfulness", score: movementScore, maxScore: 20, color: .green, icon: "figure.walk")
-                ScoreRow(label: "Breathing", score: snoringScore, maxScore: 15, color: .purple, icon: "lungs.fill")
+                ScoreRow(label: "Restfulness", score: movementScore, maxScore: movementMax, color: .green, icon: "figure.walk")
+                ScoreRow(label: "Breathing", score: snoringScore, maxScore: snoringMax, color: .purple, icon: "lungs.fill")
+                if hasRecoveryData {
+                    ScoreRow(label: "Recovery", score: recoveryScore, maxScore: recoveryMax, color: .pink, icon: "waveform.path.ecg")
+                }
 
                 Divider()
 
@@ -790,5 +1047,55 @@ private struct StageTimelineCard: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Metric Explainer
+
+struct MetricExplainerRequest: Identifiable {
+    let id = UUID()
+    let name: String
+    let value: String
+}
+
+private struct MetricExplainerSheet: View {
+    let metricName: String
+    let metricValue: String
+    let isLoading: Bool
+    let text: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "sparkles").foregroundStyle(.purple)
+                Text(metricName).font(.headline)
+                Spacer()
+                Text(metricValue).font(.subheadline).foregroundStyle(.secondary)
+            }
+
+            Divider()
+
+            if isLoading {
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text("Analyzing your baseline…")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+            } else if let text, !text.isEmpty {
+                Text(text)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("Not enough data yet. Keep tracking to build your baseline.")
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Text("On-device analysis — your data never leaves your iPhone.")
+                .font(.caption2).foregroundStyle(.secondary)
+        }
+        .padding(20)
     }
 }

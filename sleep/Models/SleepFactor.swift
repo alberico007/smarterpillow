@@ -122,7 +122,7 @@ enum MorningMood: Int, Codable, CaseIterable, Identifiable {
 
 // MARK: - SoundItem
 
-struct SoundItem: Identifiable, Hashable {
+nonisolated struct SoundItem: Identifiable, Hashable, Sendable {
     let id: String
     let name: String
     let icon: String
@@ -130,7 +130,7 @@ struct SoundItem: Identifiable, Hashable {
     let fileName: String       // local audio file name
     let isPremium: Bool
 
-    enum SoundCategory: String, CaseIterable, Identifiable {
+    nonisolated enum SoundCategory: String, CaseIterable, Identifiable, Sendable {
         case nature = "Nature"
         case whiteNoise = "White Noise"
         case ambient = "Ambient"
@@ -145,7 +145,7 @@ struct SoundItem: Identifiable, Hashable {
 
 // MARK: - Sound Library
 
-enum SoundLibrary {
+nonisolated enum SoundLibrary {
     static let all: [SoundItem] = [
         // Nature
         SoundItem(id: "rain", name: "Rain", icon: "cloud.rain.fill", category: .nature, fileName: "rain", isPremium: false),
@@ -387,16 +387,60 @@ enum SoundLibrary {
         SoundItem(id: "ice_cubes", name: "Ice Cubes", icon: "snowflake", category: .asmr, fileName: "ice_cubes", isPremium: true),
     ]
 
-    // MARK: - Category Filters
+    // MARK: - TTS-Backed Content
+    //
+    // Meditations and sleep stories are voiced by AVSpeechSynthesizer with
+    // scripts from SpeechContent.swift — no audio file needed. These IDs
+    // start with `tts_` so SoundService can route them to the synthesizer.
+    static let ttsSounds: [SoundItem] = [
+        // Meditations
+        SoundItem(id: "tts_breathing_478", name: "4-7-8 Breathing", icon: "lungs.fill", category: .meditation, fileName: "", isPremium: false),
+        SoundItem(id: "tts_body_scan", name: "Body Scan", icon: "figure.stand", category: .meditation, fileName: "", isPremium: false),
+        SoundItem(id: "tts_progressive_relaxation", name: "Muscle Relaxation", icon: "figure.cooldown", category: .meditation, fileName: "", isPremium: false),
+        SoundItem(id: "tts_gratitude", name: "Gratitude", icon: "hands.sparkles.fill", category: .meditation, fileName: "", isPremium: false),
+        SoundItem(id: "tts_loving_kindness", name: "Loving Kindness", icon: "heart.fill", category: .meditation, fileName: "", isPremium: false),
 
-    static func free() -> [SoundItem] { all.filter { !$0.isPremium } }
-    static func nature() -> [SoundItem] { all.filter { $0.category == .nature } }
-    static func whiteNoise() -> [SoundItem] { all.filter { $0.category == .whiteNoise } }
-    static func ambient() -> [SoundItem] { all.filter { $0.category == .ambient } }
-    static func instrumental() -> [SoundItem] { all.filter { $0.category == .instrumental } }
-    static func meditation() -> [SoundItem] { all.filter { $0.category == .meditation } }
-    static func stories() -> [SoundItem] { all.filter { $0.category == .stories } }
-    static func asmr() -> [SoundItem] { all.filter { $0.category == .asmr } }
+        // Sleep stories
+        SoundItem(id: "tts_story_quiet_forest", name: "The Quiet Forest", icon: "tree.fill", category: .stories, fileName: "", isPremium: false),
+        SoundItem(id: "tts_story_moonlit_beach", name: "Moonlit Beach", icon: "moon.stars.fill", category: .stories, fileName: "", isPremium: false),
+        SoundItem(id: "tts_story_mountain_cabin", name: "Mountain Cabin", icon: "house.fill", category: .stories, fileName: "", isPremium: false),
+        SoundItem(id: "tts_story_gentle_river", name: "Gentle River", icon: "water.waves", category: .stories, fileName: "", isPremium: false),
+        SoundItem(id: "tts_story_ancient_library", name: "Ancient Library", icon: "books.vertical.fill", category: .stories, fileName: "", isPremium: false)
+    ]
+
+    // MARK: - Playable Filter
+
+    /// IDs of sounds that actually have a bundled audio file in the app,
+    /// plus the TTS-backed meditation/story IDs from SpeechContent.
+    /// Keep the file list in sync with files under sleep/Sounds/.
+    /// Everything else in `all` is UI-only and would silently fail to play,
+    /// so we never surface it in the sound pickers.
+    static let playableIDs: Set<String> = {
+        let fileBacked: Set<String> = [
+            "rain", "ocean", "thunder", "forest",
+            "white", "pink", "brown", "fan"
+        ]
+        return fileBacked.union(ttsSounds.map(\.id))
+    }()
+
+    nonisolated static func isPlayable(_ sound: SoundItem) -> Bool {
+        playableIDs.contains(sound.id)
+    }
+
+    /// Combined lookup source: the hand-written `all` list plus the TTS
+    /// meditation/story entries. This is what category filters search.
+    nonisolated static let allPlayable: [SoundItem] = all + ttsSounds
+
+    // MARK: - Category Filters (only playable sounds)
+
+    nonisolated static func free() -> [SoundItem] { allPlayable.filter(isPlayable) }
+    nonisolated static func nature() -> [SoundItem] { allPlayable.filter { $0.category == .nature && isPlayable($0) } }
+    nonisolated static func whiteNoise() -> [SoundItem] { allPlayable.filter { $0.category == .whiteNoise && isPlayable($0) } }
+    nonisolated static func ambient() -> [SoundItem] { allPlayable.filter { $0.category == .ambient && isPlayable($0) } }
+    nonisolated static func instrumental() -> [SoundItem] { allPlayable.filter { $0.category == .instrumental && isPlayable($0) } }
+    nonisolated static func meditation() -> [SoundItem] { allPlayable.filter { $0.category == .meditation && isPlayable($0) } }
+    nonisolated static func stories() -> [SoundItem] { allPlayable.filter { $0.category == .stories && isPlayable($0) } }
+    nonisolated static func asmr() -> [SoundItem] { allPlayable.filter { $0.category == .asmr && isPlayable($0) } }
 }
 
 
